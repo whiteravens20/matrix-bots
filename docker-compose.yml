@@ -45,5 +45,24 @@ services:
       MATRIX_USER_ID: ${CODEBOT_USER_ID}
       ALLOWED_USERS: ${CODEBOT_ALLOWED_USERS}
       N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+    volumes:
       - ./codebot/data:/app
       - ./codebot/config:/app/config      # host-mounted config.js
+
+  roombot:
+    build: ./roombot
+    container_name: roombot
+    restart: unless-stopped
+    depends_on:
+      - n8n
+    env_file:
+      - ./.env
+    environment:
+      MATRIX_HOMESERVER: ${MATRIX_HOMESERVER}
+      MATRIX_ACCESS_TOKEN: ${ROOMBOT_ACCESS_TOKEN}
+      MATRIX_USER_ID: ${ROOMBOT_USER_ID}
+      TARGET_ROOM_ID: ${TARGET_ROOM_ID}
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+    volumes:
+      - ./roombot/data:/app
+      - ./roombot/config:/app/config      # host-mounted config.js

@@ -1,22 +1,26 @@
 # Matrix Bots
 
-A collection of Matrix bots built with Node.js and the Matrix Bot SDK. This repository contains two bots: a general chatbot and a codebot, both designed to handle direct messages (DMs) from whitelisted users with optional n8n workflow integration.
+A collection of Matrix bots built with Node.js and the Matrix Bot SDK. This repository contains three bots: a general chatbot for DMs, a codebot for code-related DMs, and a roombot for room-specific interactions, all with optional n8n workflow integration.
 
 ## Features
 
-- **DM-Only Communication**: Bots only respond to direct messages, ignoring room messages.
-- **User Whitelisting**: Only messages from specified allowed users are processed.
-- **n8n Integration**: Trigger n8n workflows on incoming DMs to automate processes.
+- **DM-Only Communication**: Chatbot and Codebot respond only to direct messages from whitelisted users.
+- **Room-Specific Communication**: Roombot responds to messages in a specific configured room.
+- **User Whitelisting**: Only messages from specified allowed users are processed (for DM bots).
+- **n8n Integration**: Trigger n8n workflows on incoming messages to automate processes.
 - **Docker Support**: Easy deployment using Docker and Docker Compose.
 - **Environment-Based Configuration**: Secure configuration through environment variables.
 
-### Bots
+## Bots
 
 #### Chatbot (`chatbot/`)
-A basic Matrix bot that echoes back received DMs from allowed users and triggers n8n workflows.
+A general-purpose bot that echoes back received DMs from allowed users and triggers n8n workflows.
 
 #### Codebot (`codebot/`)
-A specialized bot for code-related interactions that also supports n8n workflow integration for automation.
+A specialized bot for code-related interactions that responds only to DMs from allowed users and supports n8n workflow integration for automation.
+
+#### Roombot (`roombot/`)
+A bot configured to listen for messages in a specific Matrix room and trigger n8n workflows on all room messages.
 
 ## Setup
 
@@ -42,11 +46,14 @@ A specialized bot for code-related interactions that also supports n8n workflow 
    - `MATRIX_HOMESERVER`: Your Matrix homeserver URL
    - `GENERALBOT_USER_ID`: User ID for the chatbot
    - `GENERALBOT_ACCESS_TOKEN`: Access token for the chatbot
-   - `GENERALBOT_ALLOWED_USERS`: Comma-separated list of allowed user IDs
+   - `GENERALBOT_ALLOWED_USERS`: Comma-separated list of allowed user IDs for chatbot
    - `CODEBOT_USER_ID`: User ID for the codebot
    - `CODEBOT_ACCESS_TOKEN`: Access token for the codebot
    - `CODEBOT_ALLOWED_USERS`: Comma-separated list of allowed user IDs for codebot
-   - `N8N_WEBHOOK_URL` (optional): n8n webhook URL to trigger workflows on incoming DMs
+   - `ROOMBOT_USER_ID`: User ID for the roombot
+   - `ROOMBOT_ACCESS_TOKEN`: Access token for the roombot
+   - `TARGET_ROOM_ID`: Matrix room ID for roombot to listen to (format: `!roomHash:homeserver.com`)
+   - `N8N_WEBHOOK_URL` (optional): n8n webhook URL to trigger workflows on incoming messages
 
 ### Running Locally
 
@@ -66,19 +73,35 @@ docker-compose up -d
 
 ## Configuration
 
-Each bot has its own configuration file in `botname/config/config.js`. The configuration includes:
+Each bot has its own configuration file in `botname/config/config.js`:
+
+**Chatbot and Codebot** (`config.js`):
 - Matrix homeserver URL
 - Access token
 - User ID
 - List of allowed users
 
+**Roombot** (`config.js`):
+- Matrix homeserver URL
+- Access token
+- User ID
+- Target room ID (which room to listen to)
+
 ## Usage
 
-Once running, the bots will:
+### Chatbot and Codebot
+Once running, these bots will:
 1. Connect to the Matrix homeserver
 2. Listen for room invitations (and ignore them)
 3. Respond to DMs from whitelisted users with a confirmation message
-4. Trigger n8n workflows (if configured) to automate downstream processes
+4. Trigger n8n workflows (if configured) for each incoming DM
+
+### Roombot
+Once running, the roombot will:
+1. Connect to the Matrix homeserver
+2. Listen for messages in the configured room (`TARGET_ROOM_ID`)
+3. Respond to all messages in that room with a confirmation message
+4. Trigger n8n workflows (if configured) for each message
 
 ## n8n Integration
 
