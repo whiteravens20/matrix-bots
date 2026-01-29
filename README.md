@@ -25,9 +25,14 @@ A bot configured to listen for messages in a specific Matrix room and trigger n8
 ## Setup
 
 ### Prerequisites
-- Node.js (for local development)
-- Docker and Docker Compose (for containerized deployment)
+- **Node.js 22+** (for local development) - Check with `node --version`
+- **Docker and Docker Compose** (recommended for deployment)
 - A Matrix homeserver account with access tokens for each bot
+
+### ⚠️ Important: Node Version
+This project requires **Node.js 22 or higher** due to the `@matrix-org/matrix-sdk-crypto-nodejs` dependency.
+- Docker images use Node 22-alpine (compatible) ✅
+- Local development requires Node 22+ ⚠️
 
 ### Installation
 
@@ -141,6 +146,18 @@ This allows you to process Matrix messages through n8n workflows automatically w
 - Uses `matrix-bot-sdk` for Matrix integration
 - Uses `axios` for HTTP requests to n8n webhooks
 - Environment variables are loaded using `dotenv`
+
+## Security
+
+For security considerations, known vulnerabilities, and best practices, see [SECURITY.md](SECURITY.md).
+
+**Key Points:**
+- ✅ No permanent data storage
+- ✅ No arbitrary code execution
+- ✅ Requires Node.js 22+ (enforced in package.json)
+- ✅ Docker deployment recommended
+- ⚠️ Review SECURITY.md for known transitive dependency vulnerabilities
+
 
 ## License
 
