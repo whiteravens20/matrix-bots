@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { MatrixClient, SimpleFsStorageProvider } from "matrix-bot-sdk";
+import axios from "axios";
 import config from "./config/config.js";
 
 const storage = new SimpleFsStorageProvider("./bot.json");
@@ -10,14 +11,14 @@ const client = new MatrixClient(
 );
 
 await client.start();
-console.log(`Bot ${config.matrix.userId} uruchomiony`);
+console.log(`Bot ${config.matrix.userId} started`);
 
-// Ignorowanie zaproszeń
+// Ignoring invitations
 client.on("room.invite", async (roomId, event) => {
-  console.log(`Ignoruję zaproszenie do pokoju ${roomId} od ${event.sender}`);
+  console.log(`Ignoring invitation to room ${roomId} from ${event.sender}`);
 });
 
-// DM-only z whitelistą
+// DM-only with whitelist
 client.on("room.message", async (roomId, event) => {
   try {
     if (!event.content || event.content.msgtype !== "m.text") return;
@@ -28,11 +29,26 @@ client.on("room.message", async (roomId, event) => {
 
     if (!config.bot.allowedUsers.includes(event.sender)) return;
 
-    console.log(`DM od ${event.sender}: ${event.content.body}`);
+    console.log(`DM from ${event.sender}: ${event.content.body}`);
+
+    // Trigger n8n workflow if webhook URL is configured
+    if (config.n8n.webhookUrl) {
+      try {
+        await axios.post(config.n8n.webhookUrl, {
+          sender: event.sender,
+          message: event.content.body,
+          roomId: roomId,
+          timestamp: new Date().toISOString()
+        });
+        console.log(`n8n workflow triggered for message from ${event.sender}`);
+      } catch (webhookError) {
+        console.error(`Error triggering n8n workflow: ${webhookError.message}`);
+      }
+    }
 
     await client.sendMessage(roomId, {
       msgtype: "m.text",
-      body: `Cześć ${event.sender}, otrzymałem Twoją wiadomość: "${event.content.body}"`
+      body: `Hello ${event.sender}, I received your message: "${event.content.body}"`
     });
   } catch (err) {
     console.error(err);

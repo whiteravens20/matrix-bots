@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { MatrixClient, SimpleFsStorageProvider } from "matrix-bot-sdk";
+import axios from "axios";
 import config from "./config/config.js";
 
 const storage = new SimpleFsStorageProvider("./bot.json");
@@ -29,6 +30,21 @@ client.on("room.message", async (roomId, event) => {
     if (!config.bot.allowedUsers.includes(event.sender)) return;
 
     console.log(`DM from ${event.sender}: ${event.content.body}`);
+
+    // Trigger n8n workflow if webhook URL is configured
+    if (config.n8n.webhookUrl) {
+      try {
+        await axios.post(config.n8n.webhookUrl, {
+          sender: event.sender,
+          message: event.content.body,
+          roomId: roomId,
+          timestamp: new Date().toISOString()
+        });
+        console.log(`n8n workflow triggered for message from ${event.sender}`);
+      } catch (webhookError) {
+        console.error(`Error triggering n8n workflow: ${webhookError.message}`);
+      }
+    }
 
     await client.sendMessage(roomId, {
       msgtype: "m.text",

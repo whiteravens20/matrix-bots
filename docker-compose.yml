@@ -1,14 +1,32 @@
 services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=n8n
+      - N8N_PROTOCOL=http
+      - N8N_PORT=5678
+      - N8N_SECURE_COOKIE=false
+    volumes:
+      - ./n8n/data:/home/node/.n8n
+
   chatbot:
     build: ./chatbot
     container_name: chatbot
     restart: unless-stopped
+    depends_on:
+      - n8n
     env_file:
       - ./.env
     environment:
+      MATRIX_HOMESERVER: ${MATRIX_HOMESERVER}
       MATRIX_ACCESS_TOKEN: ${GENERALBOT_ACCESS_TOKEN}
       MATRIX_USER_ID: ${GENERALBOT_USER_ID}
       ALLOWED_USERS: ${GENERALBOT_ALLOWED_USERS}
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
     volumes:
       - ./chatbot/data:/app
       - ./chatbot/config:/app/config   # host-mounted config.js
@@ -17,12 +35,15 @@ services:
     build: ./codebot
     container_name: codebot
     restart: unless-stopped
+    depends_on:
+      - n8n
     env_file:
       - ./.env
     environment:
+      MATRIX_HOMESERVER: ${MATRIX_HOMESERVER}
       MATRIX_ACCESS_TOKEN: ${CODEBOT_ACCESS_TOKEN}
       MATRIX_USER_ID: ${CODEBOT_USER_ID}
       ALLOWED_USERS: ${CODEBOT_ALLOWED_USERS}
-    volumes:
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
       - ./codebot/data:/app
       - ./codebot/config:/app/config      # host-mounted config.js
