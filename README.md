@@ -42,23 +42,31 @@ This project requires **Node.js 22 or higher** due to the `@matrix-org/matrix-sd
    cd matrix-bots
    ```
 
-2. Copy the environment example file:
+2. Create data directories for each bot:
+   ```bash
+   mkdir -p chatbot/data codebot/data roombot/data n8n/data
+   ```
+
+3. Copy the environment example file:
    ```bash
    cp .env.example .env
    ```
 
-3. Edit `.env` with your Matrix credentials:
+4. Edit `.env` with your Matrix credentials:
    - `MATRIX_HOMESERVER`: Your Matrix homeserver URL
    - `GENERALBOT_USER_ID`: User ID for the chatbot
    - `GENERALBOT_ACCESS_TOKEN`: Access token for the chatbot
-   - `GENERALBOT_ALLOWED_USERS`: Comma-separated list of allowed user IDs for chatbot
+   - `GENERALBOT_ALLOWED_USERS`: Comma-separated list of allowed user IDs for chatbot (no trailing commas)
    - `CODEBOT_USER_ID`: User ID for the codebot
    - `CODEBOT_ACCESS_TOKEN`: Access token for the codebot
-   - `CODEBOT_ALLOWED_USERS`: Comma-separated list of allowed user IDs for codebot
+   - `CODEBOT_ALLOWED_USERS`: Comma-separated list of allowed user IDs for codebot (no trailing commas)
    - `ROOMBOT_USER_ID`: User ID for the roombot
    - `ROOMBOT_ACCESS_TOKEN`: Access token for the roombot
-   - `TARGET_ROOM_ID`: Matrix room ID for roombot to listen to (format: `!roomHash:homeserver.com`)
+   - `TARGET_ROOM_ID`: Matrix room ID for roombot to listen to (format: `!roomHash:homeserver.com`) - **REQUIRED**
    - `N8N_WEBHOOK_URL` (optional): n8n webhook URL to trigger workflows on incoming messages
+   - `N8N_BASIC_AUTH_ACTIVE` (optional): Enable n8n basic authentication (recommended: `true`)
+   - `N8N_USER` (optional): n8n basic auth username
+   - `N8N_PASSWORD` (optional): n8n basic auth password (use strong password!)
 
 ### Running Locally
 
@@ -98,15 +106,18 @@ Each bot has its own configuration file in `botname/config/config.js`:
 Once running, these bots will:
 1. Connect to the Matrix homeserver
 2. Listen for room invitations (and ignore them)
-3. Respond to DMs from whitelisted users with a confirmation message
-4. Trigger n8n workflows (if configured) for each incoming DM
+3. **Verify messages are in DM rooms** (exactly 2 members: bot + user)
+4. **Check sender is in whitelist** before responding
+5. Respond to DMs from whitelisted users with a confirmation message
+6. Trigger n8n workflows (if configured) for each incoming DM
 
 ### Roombot
 Once running, the roombot will:
 1. Connect to the Matrix homeserver
-2. Listen for messages in the configured room (`TARGET_ROOM_ID`)
-3. Respond to all messages in that room with a confirmation message
-4. Trigger n8n workflows (if configured) for each message
+2. Verify `TARGET_ROOM_ID` is configured (fails if not set)
+3. Listen for messages in the configured room (`TARGET_ROOM_ID`)
+4. Respond to all messages in that room with a confirmation message
+5. Trigger n8n workflows (if configured) for each message
 
 ## n8n Integration
 
@@ -149,11 +160,25 @@ This allows you to process Matrix messages through n8n workflows automatically w
 
 ## Security
 
-For security considerations, known vulnerabilities, and best practices, see [SECURITY.md](SECURITY.md).
-
-**Key Points:**
+For DM verification via room member count (not metadata)
+- ✅ User whitelist with empty value filtering
+- ✅ Required TARGET_ROOM_ID validation for roombot
+- ✅ HTTPS warning for n8n webhooks (except localhost)
+- ✅ 5-second timeout for webhook requests
 - ✅ No permanent data storage
 - ✅ No arbitrary code execution
+- ✅ Requires Node.js 22+ (enforced in package.json)
+- ✅ Docker deployment recommended with health checks
+- ✅ n8n basic authentication support
+- ⚠️ Review SECURITY.md for known transitive dependency vulnerabilities
+
+**Recent Security Fixes (2026-02-05):**
+- Fixed critical DM detection bug (bots now properly restrict to DMs)
+- Fixed whitelist configuration handling
+- Added TARGET_ROOM_ID validation
+- Fixed Docker volume mappings
+- Added comprehensive error handling
+- See [CHANGELOG.md](CHANGELOG.md) for complete detail
 - ✅ Requires Node.js 22+ (enforced in package.json)
 - ✅ Docker deployment recommended
 - ⚠️ Review SECURITY.md for known transitive dependency vulnerabilities

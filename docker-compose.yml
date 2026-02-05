@@ -10,15 +10,25 @@ services:
       - N8N_PROTOCOL=http
       - N8N_PORT=5678
       - N8N_SECURE_COOKIE=false
+      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE:-false}
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-changeme}
     volumes:
       - ./n8n/data:/home/node/.n8n
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   chatbot:
     build: ./chatbot
     container_name: chatbot
     restart: unless-stopped
     depends_on:
-      - n8n
+      n8n:
+        condition: service_healthy
     env_file:
       - ./.env
     environment:
@@ -28,15 +38,22 @@ services:
       ALLOWED_USERS: ${GENERALBOT_ALLOWED_USERS}
       N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
     volumes:
-      - ./chatbot/data:/app
-      - ./chatbot/config:/app/config   # host-mounted config.js
+      - ./chatbot/data:/app/data
+      - ./chatbot/config:/app/config
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   codebot:
     build: ./codebot
     container_name: codebot
     restart: unless-stopped
     depends_on:
-      - n8n
+      n8n:
+        condition: service_healthy
     env_file:
       - ./.env
     environment:
@@ -46,15 +63,22 @@ services:
       ALLOWED_USERS: ${CODEBOT_ALLOWED_USERS}
       N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
     volumes:
-      - ./codebot/data:/app
-      - ./codebot/config:/app/config      # host-mounted config.js
+      - ./codebot/data:/app/data
+      - ./codebot/config:/app/config
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   roombot:
     build: ./roombot
     container_name: roombot
     restart: unless-stopped
     depends_on:
-      - n8n
+      n8n:
+        condition: service_healthy
     env_file:
       - ./.env
     environment:
@@ -64,5 +88,11 @@ services:
       TARGET_ROOM_ID: ${TARGET_ROOM_ID}
       N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
     volumes:
-      - ./roombot/data:/app
-      - ./roombot/config:/app/config      # host-mounted config.js
+      - ./roombot/data:/app/data
+      - ./roombot/config:/app/config
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

@@ -5,7 +5,7 @@ export default {
     userId: process.env.MATRIX_USER_ID
   },
   bot: {
-    allowedUsers: (process.env.ALLOWED_USERS || "").split(",")
+    allowedUsers: (process.env.ALLOWED_USERS || "").split(",").filter(u => u.trim())
   },
   n8n: {
     webhookUrl: process.env.N8N_WEBHOOK_URL
