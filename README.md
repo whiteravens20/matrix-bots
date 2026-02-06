@@ -102,54 +102,129 @@ Each bot has its own configuration file in `botname/config/config.js`:
 
 ## Usage
 
+### Commands
+
+All bots support command-based routing for multi-LLM workflows:
+
+**Available Commands:**
+- `!help` - Display available commands and bot capabilities
+- `!clear` - Clear your conversation memory (handled in n8n workflow)
+- `!code <question>` - Route to specialized code assistant LLM
+- `!review <code>` - Route to code review LLM (CodeBot)
+- `!translate <text>` - Route to translation LLM (ChatBot)
+- `!moderate <topic>` - Route to moderation LLM (RoomBot)
+
+**Command Rules:**
+- Commands must be lowercase (`!code`, not `!Code`)
+- Commands without arguments (e.g., `!help`) execute immediately
+- Messages without `!` prefix are handled by the default general LLM
+- Each bot can have different specialized LLMs configured in n8n
+
+**Memory System:**
+- Each user has 20 messages stored (across all command types)
+- Memory auto-expires after 30 minutes of inactivity
+- Use `!clear` to manually reset conversation history
+- Memory is shared across all LLMs in the same bot workflow
+
 ### Chatbot and Codebot
 Once running, these bots will:
 1. Connect to the Matrix homeserver
 2. Listen for room invitations (and ignore them)
 3. **Verify messages are in DM rooms** (exactly 2 members: bot + user)
 4. **Check sender is in whitelist** before responding
-5. Respond to DMs from whitelisted users with a confirmation message
-6. Trigger n8n workflows (if configured) for each incoming DM
+5. Parse commands (`!code`, `!help`, etc.) and route to appropriate LLM in n8n
+6. Respond with AI-generated messages prefixed with agent name (e.g., `[Code Expert]`)
+7. Maintain 20-message conversation history per user with 30-min TTL
 
 ### Roombot
 Once running, the roombot will:
 1. Connect to the Matrix homeserver
 2. Verify `TARGET_ROOM_ID` is configured (fails if not set)
 3. Listen for messages in the configured room (`TARGET_ROOM_ID`)
-4. Respond to all messages in that room with a confirmation message
-5. Trigger n8n workflows (if configured) for each message
+4. Parse commands and route to appropriate LLM in n8n
+5. Maintain separate 20-message history per user (not shared room memory)
+6. Respond with prefixed messages indicating which LLM handled the request
 
 ## n8n Integration
 
 ### Setup
 
 1. Create a workflow in your n8n instance that accepts webhook requests
-2. Copy the webhook URL from the n8n workflow
-3. Add the webhook URL to your `.env` file:
+2. Add **Window Buffer Memory Node** with:
+   - Session Key: `{{$json.sessionId}}`
+   - Context Window Size: 20
+   - (Optional) Add custom TTL logic for 30-minute auto-clear
+3. Add **Switch Node** to route by `{{$json.commandType}}`:
+   - `general` → Default LLM
+   - `code` → Code specialist LLM
+   - `clear` → Memory clear action
+   - Add more as needed
+4. Connect all LLM branches to the same Memory node for shared context
+5. Copy the webhook URL from the n8n workflow
+6. Add the webhook URL to your `.env` file:
    ```bash
    N8N_WEBHOOK_URL=https://your-n8n-instance.com/webhook/your-webhook-path
    ```
 
 ### Webhook Payload
 
-When a DM is received, the bot sends the following JSON payload to the n8n webhook:
+When a message is received, the bot sends the following JSON payload to the n8n webhook:
 
 ```json
 {
-  "sender": "@user:example.com",
-  "message": "User's message content",
+  "sessionId": "@user:example.com",
+  "chatInput": "User's message or command input",
+  "commandType": "general|code|clear|help|...",
+  "originalMessage": "!code how to reverse string",
   "roomId": "!roomIdHash:example.com",
-  "timestamp": "2024-01-29T12:34:56.789Z"
+  "timestamp": "2026-02-06T12:34:56.789Z",
+  "botType": "chatbot|codebot|roombot"
 }
 ```
 
-### Example n8n Workflow
+**Fields:**
+- `sessionId` - Unique user ID for memory isolation (20 messages per user)
+- `chatInput` - Extracted input after command prefix (or full message if no command)
+- `commandType` - Parsed command for routing (`general` if no `!` prefix)
+- `originalMessage` - Full original message including command prefix
+- `botType` - Which bot sent the message (for statistics/debugging)
 
-In n8n, create a workflow with:
-1. **Webhook Trigger** node - Listening for POST requests
-2. Your automation steps (e.g., save to database, send notifications, call APIs)
+### n8n Workflow Response Format
 
-This allows you to process Matrix messages through n8n workflows automatically whenever a DM is received by the bot.
+Your n8n workflow should return a JSON response:
+
+```json
+{
+  "output": "AI-generated response text",
+  "agentType": "code|general|translate|..."
+}
+```
+
+**Fields:**
+- `output` - Required. The response text to send back to user
+- `agentType` - Optional. Used to select response prefix (e.g., `[Code Expert]` vs `[ChatBot]`)
+
+### Example n8n Workflow Structure
+
+```
+1. Webhook Trigger (receives bot payload)
+   ↓
+2. Window Buffer Memory (sessionId: {{$json.sessionId}}, size: 20)
+   ↓
+3. Switch Node (route by {{$json.commandType}})
+   ├─ "general" → OpenAI Chat (System: "You are a helpful assistant")
+   ├─ "code" → OpenAI Chat (System: "You are a code expert")
+   ├─ "clear" → Clear Memory Action
+   └─ default → Error handler
+   ↓
+4. Respond to Webhook (return {output, agentType})
+```
+
+This allows you to:
+- Process Matrix messages through AI models with conversation memory
+- Route different commands to specialized LLMs
+- Maintain context across 20 messages per user
+- Auto-expire memory after 30 minutes of inactivity
 
 ## Development
 

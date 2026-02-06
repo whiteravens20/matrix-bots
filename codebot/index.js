@@ -3,6 +3,40 @@ import { MatrixClient, SimpleFsStorageProvider } from "matrix-bot-sdk";
 import axios from "axios";
 import config from "./config/config.js";
 
+// Command parser for multi-LLM routing
+function parseCommand(message) {
+  const trimmed = message.trim();
+  
+  // Check if message starts with !
+  if (!trimmed.startsWith('!')) {
+    return {
+      command: 'general',
+      input: message,
+      isCommand: false
+    };
+  }
+  
+  // Extract command (lowercase only) and input
+  const firstSpace = trimmed.indexOf(' ');
+  if (firstSpace === -1) {
+    // Command without arguments (e.g., "!help")
+    return {
+      command: trimmed.substring(1).toLowerCase(),
+      input: '',
+      isCommand: true
+    };
+  }
+  
+  const command = trimmed.substring(1, firstSpace).toLowerCase();
+  const input = trimmed.substring(firstSpace + 1).trim();
+  
+  return {
+    command: command,
+    input: input,
+    isCommand: true
+  };
+}
+
 const storage = new SimpleFsStorageProvider(`./bot-${config.matrix.userId.replace(/[^a-z0-9]/gi, '_')}.json`);
 const client = new MatrixClient(
   config.matrix.homeserverUrl,
@@ -45,24 +79,67 @@ client.on("room.message", async (roomId, event) => {
 
     console.log(`DM from ${event.sender}: ${event.content.body}`);
 
-    // Trigger n8n workflow if webhook URL is configured
+    // Parse command
+    const parsed = parseCommand(event.content.body);
+    
+    // Handle !help command locally
+    if (parsed.command === 'help') {
+      try {
+        await client.sendMessage(roomId, {
+          msgtype: "m.text",
+          body: config.bot.helpText
+        });
+      } catch (sendError) {
+        console.error(`Failed to send help message: ${sendError.message}`);
+      }
+      return;
+    }
+
+    // Send to n8n with command routing and memory
     if (config.n8n.webhookUrl) {
       try {
-        await axios.post(config.n8n.webhookUrl, {
-          sender: event.sender,
-          message: event.content.body,
+        const response = await axios.post(config.n8n.webhookUrl, {
+          sessionId: event.sender,
+          chatInput: parsed.input || event.content.body,
+          commandType: parsed.command,
+          originalMessage: event.content.body,
           roomId: roomId,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          botType: 'codebot'
         }, {
-          timeout: 5000,
+          timeout: 30000,
           headers: { 'Content-Type': 'application/json' }
         });
-        console.log(`n8n workflow triggered for message from ${event.sender}`);
+        
+        console.log(`n8n workflow processed message from ${event.sender}`);
+        
+        // Send AI response from n8n with prefix
+        if (response.data?.output) {
+          let prefix = config.bot.responsePrefix;
+          if (response.data.agentType === 'code' && config.bot.codePrefix) {
+            prefix = config.bot.codePrefix;
+          } else if (response.data.agentType && config.bot.prefixes?.[response.data.agentType]) {
+            prefix = config.bot.prefixes[response.data.agentType];
+          }
+          
+          const formattedResponse = prefix ? `${prefix} ${response.data.output}` : response.data.output;
+          
+          try {
+            await client.sendMessage(roomId, {
+              msgtype: "m.text",
+              body: formattedResponse
+            });
+            return;
+          } catch (sendError) {
+            console.error(`Failed to send n8n response to ${roomId}: ${sendError.message}`);
+          }
+        }
       } catch (webhookError) {
-        console.error(`Error triggering n8n workflow: ${webhookError.message}`);
+        console.error(`Error with n8n workflow: ${webhookError.message}`);
       }
     }
 
+    // Fallback response if n8n not configured or error occurred
     try {
       await client.sendMessage(roomId, {
         msgtype: "m.text",
