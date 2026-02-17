@@ -1,8 +1,11 @@
 export default {
   matrix: {
     homeserverUrl: process.env.MATRIX_HOMESERVER,
+    // Option 1: Use static access token (can become invalid if you login manually)
     accessToken: process.env.MATRIX_ACCESS_TOKEN,
-    userId: process.env.MATRIX_USER_ID
+    // Option 2: Use username/password for automatic login (recommended)
+    username: process.env.MATRIX_USERNAME,
+    password: process.env.MATRIX_PASSWORD
   },
   bot: {
     targetRoomId: process.env.TARGET_ROOM_ID,

@@ -1,5 +1,67 @@
 # Changelog
 
+## [2.1.0] - 2026-02-17
+
+### 🔄 Password-Based Authentication
+
+#### New Feature: Automatic Login
+- **Added**: Support for username/password authentication (RECOMMENDED)
+  - Bots now automatically log in on startup to get fresh access tokens
+  - Eliminates issues with tokens becoming invalid from manual logins
+  - No more "Invalid access token" errors
+  
+#### Authentication Options
+- **Option 1 (Recommended)**: Username/Password
+  - Set `DMBOT_USERNAME` and `DMBOT_PASSWORD` for DM Bot
+  - Set `ROOMBOT_USERNAME` and `ROOMBOT_PASSWORD` for Room Bot
+  - Bot automatically logs in and obtains fresh token on each startup
+  
+- **Option 2 (Legacy)**: Static Access Token
+  - Set `DMBOT_ACCESS_TOKEN` or `ROOMBOT_ACCESS_TOKEN`
+  - Still supported for backward compatibility
+  - ⚠️ Token can become invalid if you log into bot account manually
+
+#### Configuration Changes
+- Removed: `DMBOT_USER_ID` and `ROOMBOT_USER_ID` (no longer needed)
+- Bot automatically detects its user ID after login
+- Storage file simplified to `./data/bot-storage.json`
+
+#### Benefits
+- **No Token Expiration Issues**: Fresh token on every startup
+- **Easier Maintenance**: Just use username/password, no manual token generation
+- **More Reliable**: Tokens won't break if you log into bot account manually
+- **Backward Compatible**: Still supports access token method
+
+### Migration Guide
+
+**If you're using access tokens and experiencing token invalidation:**
+
+1. Update your `.env` file:
+   ```bash
+   # Remove these lines:
+   DMBOT_USER_ID=@dmbot:example.com
+   DMBOT_ACCESS_TOKEN=syt_...
+   ROOMBOT_USER_ID=@roombot:example.com
+   ROOMBOT_ACCESS_TOKEN=syt_...
+   
+   # Add these instead:
+   DMBOT_USERNAME=dmbot
+   DMBOT_PASSWORD=your_bot_password
+   ROOMBOT_USERNAME=roombot
+   ROOMBOT_PASSWORD=your_bot_password
+   ```
+
+2. Restart bots:
+   ```bash
+   docker-compose restart dmbot roombot
+   ```
+
+**If you want to keep using access tokens:**
+- No changes needed! The old method still works.
+- Just be aware tokens may become invalid if you log in manually.
+
+---
+
 ## [2.0.0] - 2026-02-17
 
 ### 🔄 Major Restructuring - Two Bot Architecture

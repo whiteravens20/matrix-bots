@@ -33,8 +33,10 @@ services:
       - ./.env
     environment:
       MATRIX_HOMESERVER: ${MATRIX_HOMESERVER}
+      # Use either username/password OR access token
+      MATRIX_USERNAME: ${DMBOT_USERNAME}
+      MATRIX_PASSWORD: ${DMBOT_PASSWORD}
       MATRIX_ACCESS_TOKEN: ${DMBOT_ACCESS_TOKEN}
-      MATRIX_USER_ID: ${DMBOT_USER_ID}
       ALLOWED_USERS: ${DMBOT_ALLOWED_USERS}
       N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
     volumes:
@@ -58,8 +60,10 @@ services:
       - ./.env
     environment:
       MATRIX_HOMESERVER: ${MATRIX_HOMESERVER}
+      # Use either username/password OR access token
+      MATRIX_USERNAME: ${ROOMBOT_USERNAME}
+      MATRIX_PASSWORD: ${ROOMBOT_PASSWORD}
       MATRIX_ACCESS_TOKEN: ${ROOMBOT_ACCESS_TOKEN}
-      MATRIX_USER_ID: ${ROOMBOT_USER_ID}
       TARGET_ROOM_ID: ${TARGET_ROOM_ID}
       N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
     volumes:
