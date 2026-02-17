@@ -41,7 +41,7 @@ A bot configured for group room interactions. It:
 ### Prerequisites
 - **Node.js 22+** (for local development) - Check with `node --version`
 - **Docker and Docker Compose** (recommended for deployment)
-- A Matrix homeserver account with access tokens for each bot
+- **Matrix bot accounts** with credentials - See [BOT_CREDENTIALS_GUIDE.md](docs/BOT_CREDENTIALS_GUIDE.md) for setup instructions
 
 ### ⚠️ Important: Node Version
 This project requires **Node.js 22 or higher** due to the `@matrix-org/matrix-sdk-crypto-nodejs` dependency.
@@ -66,21 +66,45 @@ This project requires **Node.js 22 or higher** due to the `@matrix-org/matrix-sd
    cp .env.example .env
    ```
 
-4. Edit `.env` with your Matrix credentials:
+4. Edit `.env` with your Matrix credentials.
+
+   **Choose ONE authentication method for each bot:**
+
+   **Method 1: Username/Password (RECOMMENDED)**
+   - Bots automatically log in on startup to get fresh access tokens
+   - Tokens never expire or become invalid from manual logins
+   - More reliable and easier to maintain
+   
+   Configuration:
    - `MATRIX_HOMESERVER`: Your Matrix homeserver URL
-   - **DM Bot Configuration:**
-     - `DMBOT_USER_ID`: User ID for the DM bot
-     - `DMBOT_ACCESS_TOKEN`: Access token for the DM bot
+   - **DM Bot:**
+     - `DMBOT_USERNAME`: Bot account username (e.g., `dmbot` not full ID)
+     - `DMBOT_PASSWORD`: Bot account password
      - `DMBOT_ALLOWED_USERS`: Comma-separated list of allowed user IDs (no trailing commas)
-   - **Room Bot Configuration:**
-     - `ROOMBOT_USER_ID`: User ID for the room bot
-     - `ROOMBOT_ACCESS_TOKEN`: Access token for the room bot
+   - **Room Bot:**
+     - `ROOMBOT_USERNAME`: Bot account username (e.g., `roombot`)
+     - `ROOMBOT_PASSWORD`: Bot account password
      - `TARGET_ROOM_ID`: Matrix room ID for room bot to listen to (format: `!roomHash:homeserver.com`) - **REQUIRED**
-   - **n8n Configuration (optional):**
-     - `N8N_WEBHOOK_URL`: n8n webhook URL to trigger workflows on incoming messages
-     - `N8N_BASIC_AUTH_ACTIVE`: Enable n8n basic authentication (recommended: `true`)
-     - `N8N_USER`: n8n basic auth username
-     - `N8N_PASSWORD`: n8n basic auth password (use strong password!)
+
+   **Method 2: Static Access Token (Legacy)**
+   - Use pre-generated access token
+   - ⚠️ Token can become invalid if you manually log into the bot account
+   - Not recommended for production
+
+   Configuration:
+   - `MATRIX_HOMESERVER`: Your Matrix homeserver URL
+   - **DM Bot:**
+     - `DMBOT_ACCESS_TOKEN`: Pre-generated access token
+     - `DMBOT_ALLOWED_USERS`: Comma-separated list of allowed user IDs
+   - **Room Bot:**
+     - `ROOMBOT_ACCESS_TOKEN`: Pre-generated access token
+     - `TARGET_ROOM_ID`: Matrix room ID (REQUIRED)
+
+   **n8n Configuration (optional):**
+   - `N8N_WEBHOOK_URL`: n8n webhook URL to trigger workflows on incoming messages
+   - `N8N_BASIC_AUTH_ACTIVE`: Enable n8n basic authentication (recommended: `true`)
+   - `N8N_USER`: n8n basic auth username
+   - `N8N_PASSWORD`: n8n basic auth password (use strong password!)
 
 ### Running Locally
 
