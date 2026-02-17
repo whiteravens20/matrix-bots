@@ -105,7 +105,7 @@ client.on("room.message", async (roomId, event) => {
           originalMessage: event.content.body,
           roomId: roomId,
           timestamp: new Date().toISOString(),
-          botType: 'chatbot'
+          botType: 'dmbot'
         }, {
           timeout: 30000,
           headers: { 'Content-Type': 'application/json' }
@@ -116,9 +116,7 @@ client.on("room.message", async (roomId, event) => {
         // Send AI response from n8n with prefix
         if (response.data?.output) {
           let prefix = config.bot.responsePrefix;
-          if (response.data.agentType === 'code' && config.bot.codePrefix) {
-            prefix = config.bot.codePrefix;
-          } else if (response.data.agentType && config.bot.prefixes?.[response.data.agentType]) {
+          if (response.data.agentType && config.bot.prefixes?.[response.data.agentType]) {
             prefix = config.bot.prefixes[response.data.agentType];
           }
           
@@ -154,4 +152,4 @@ client.on("room.message", async (roomId, event) => {
 });
 
 await client.start();
-console.log(`Bot ${config.matrix.userId} started`);
+console.log(`DM Bot ${config.matrix.userId} started`);

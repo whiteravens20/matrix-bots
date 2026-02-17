@@ -1,6 +1,6 @@
 {
-  "name": "matrix-room-bot",
-  "version": "1.0.0",
+  "name": "matrix-roombot",
+  "version": "2.0.0",
   "type": "module",
   "main": "index.js",
   "engines": {

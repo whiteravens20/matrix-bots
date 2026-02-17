@@ -107,9 +107,7 @@ client.on("room.message", async (roomId, event) => {
         // Send AI response from n8n with prefix
         if (response.data?.output) {
           let prefix = config.bot.responsePrefix;
-          if (response.data.agentType === 'code' && config.bot.codePrefix) {
-            prefix = config.bot.codePrefix;
-          } else if (response.data.agentType && config.bot.prefixes?.[response.data.agentType]) {
+          if (response.data.agentType && config.bot.prefixes?.[response.data.agentType]) {
             prefix = config.bot.prefixes[response.data.agentType];
           }
           

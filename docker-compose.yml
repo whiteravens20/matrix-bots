@@ -22,9 +22,9 @@ services:
       retries: 3
       start_period: 10s
 
-  chatbot:
-    build: ./chatbot
-    container_name: chatbot
+  dmbot:
+    build: ./dmbot
+    container_name: dmbot
     restart: unless-stopped
     depends_on:
       n8n:
@@ -33,38 +33,13 @@ services:
       - ./.env
     environment:
       MATRIX_HOMESERVER: ${MATRIX_HOMESERVER}
-      MATRIX_ACCESS_TOKEN: ${GENERALBOT_ACCESS_TOKEN}
-      MATRIX_USER_ID: ${GENERALBOT_USER_ID}
-      ALLOWED_USERS: ${GENERALBOT_ALLOWED_USERS}
+      MATRIX_ACCESS_TOKEN: ${DMBOT_ACCESS_TOKEN}
+      MATRIX_USER_ID: ${DMBOT_USER_ID}
+      ALLOWED_USERS: ${DMBOT_ALLOWED_USERS}
       N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
     volumes:
-      - ./chatbot/data:/app/data
-      - ./chatbot/config:/app/config
-    healthcheck:
-      test: ["CMD", "node", "-e", "process.exit(0)"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-
-  codebot:
-    build: ./codebot
-    container_name: codebot
-    restart: unless-stopped
-    depends_on:
-      n8n:
-        condition: service_healthy
-    env_file:
-      - ./.env
-    environment:
-      MATRIX_HOMESERVER: ${MATRIX_HOMESERVER}
-      MATRIX_ACCESS_TOKEN: ${CODEBOT_ACCESS_TOKEN}
-      MATRIX_USER_ID: ${CODEBOT_USER_ID}
-      ALLOWED_USERS: ${CODEBOT_ALLOWED_USERS}
-      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
-    volumes:
-      - ./codebot/data:/app/data
-      - ./codebot/config:/app/config
+      - ./dmbot/data:/app/data
+      - ./dmbot/config:/app/config
     healthcheck:
       test: ["CMD", "node", "-e", "process.exit(0)"]
       interval: 30s

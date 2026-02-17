@@ -2,20 +2,21 @@
 
 ## Multi-LLM Bot with Shared Memory
 
-This guide shows how to set up an n8n workflow for Matrix bots with command-based routing and shared conversation memory.
+This guide shows how to set up an n8n workflow for Matrix bots with command-based routing and shared conversation memory. This workflow works with both the **DM Bot** (for private messages) and the **Room Bot** (for group conversations).
 
 ---
 
 ## Architecture
 
 ```
-Matrix Bot → n8n Webhook
+Matrix Bot (DM or Room) → n8n Webhook
               ↓
        Window Buffer Memory (20 messages per user)
               ↓
        Switch Node (route by commandType)
          ├─ general → General LLM
-         ├─ code → Code Expert LLM
+         ├─ code → Code Expert LLM (DM Bot)
+         ├─ moderate → Moderation LLM (Room Bot)
          ├─ clear → Clear Memory
          └─ default → Unknown command handler
               ↓
@@ -34,11 +35,11 @@ Matrix Bot → User
 
 **Configuration:**
 - HTTP Method: `POST`
-- Path: `/webhook/chatbot` (or `/codebot`, `/roombot`)
+- Path: `/webhook/matrix-bot` (shared by both bots)
 - Response Mode: `Respond to Webhook`
 - Authentication: None (or Basic Auth if configured)
 
-**Test Payload:**
+**Test Payload (DM Bot):**
 ```json
 {
   "sessionId": "@alice:matrix.org",
@@ -46,8 +47,21 @@ Matrix Bot → User
   "commandType": "code",
   "originalMessage": "!code How do I reverse a string?",
   "roomId": "!abc123:matrix.org",
-  "timestamp": "2026-02-06T14:30:00.000Z",
-  "botType": "chatbot"
+  "timestamp": "2026-02-17T14:30:00.000Z",
+  "botType": "dmbot"
+}
+```
+
+**Test Payload (Room Bot):**
+```json
+{
+  "sessionId": "@bob:matrix.org",
+  "chatInput": "Please help moderate this discussion",
+  "commandType": "moderate",
+  "originalMessage": "!moderate Please help moderate this discussion",
+  "roomId": "!xyz789:matrix.org",
+  "timestamp": "2026-02-17T14:30:00.000Z",
+  "botType": "roombot"
 }
 ```
 
@@ -72,25 +86,52 @@ Matrix Bot → User
 **Mode:** Expression
 
 **Rules:**
+
+#### For DM Bot:
 1. **Code Command**
    - Expression: `{{ $json.commandType === "code" }}`
    - Output: Route to Code LLM
 
-2. **Clear Command**
+2. **Translate Command**
+   - Expression: `{{ $json.commandType === "translate" }}`
+   - Output: Route to Translation LLM
+
+3. **Analyze Command**
+   - Expression: `{{ $json.commandType === "analyze" }}`
+   - Output: Route to Analysis LLM
+
+4. **Clear Command**
    - Expression: `{{ $json.commandType === "clear" }}`
    - Output: Route to Memory Clear
 
-3. **General (Default)**
+5. **General (Default)**
    - Expression: `{{ true }}`
    - Output: Route to General LLM
 
-**Add more routes as needed** (translate, review, moderate, etc.)
+#### For Room Bot:
+1. **Moderate Command**
+   - Expression: `{{ $json.commandType === "moderate" }}`
+   - Output: Route to Moderation LLM
+
+2. **Announce Command**
+   - Expression: `{{ $json.commandType === "announce" }}`
+   - Output: Route to Announcement LLM
+
+3. **Clear Command**
+   - Expression: `{{ $json.commandType === "clear" }}`
+   - Output: Route to Memory Clear
+
+4. **General (Default)**
+   - Expression: `{{ true }}`
+   - Output: Route to Room Assistant LLM
+
+**Add more routes as needed** based on your bot's commands.
 
 ---
 
 ### 4. Set Up LLM Branches
 
-#### 4a. General LLM Node
+#### 4a. General LLM Node (DM Bot)
 
 **Node Type:** `OpenAI Chat Model` (or `Anthropic Chat`)
 
@@ -98,7 +139,7 @@ Matrix Bot → User
 - Model: `gpt-4o-mini` or `claude-3-5-sonnet-20241022`
 - System Message:
   ```
-  You are a helpful, friendly assistant. Provide clear and concise answers.
+  You are a helpful, friendly personal assistant. Provide clear and concise answers.
   ```
 - User Message: `{{ $json.chatInput }}`
 - Memory: **Connect to Window Buffer Memory node**
@@ -108,7 +149,7 @@ Matrix Bot → User
 
 ---
 
-#### 4b. Code Expert LLM Node
+#### 4b. Code Expert LLM Node (DM Bot)
 
 **Node Type:** `OpenAI Chat Model` (or `Anthropic Chat`)
 
@@ -127,7 +168,45 @@ Matrix Bot → User
 
 ---
 
-#### 4c. Clear Memory Branch
+#### 4c. Room Assistant LLM Node (Room Bot)
+
+**Node Type:** `OpenAI Chat Model` (or `Anthropic Chat`)
+
+**Configuration:**
+- Model: `gpt-4o-mini` or `claude-3-5-sonnet-20241022`
+- System Message:
+  ```
+  You are a helpful room assistant for group conversations. Be respectful, inclusive, and helpful.
+  Answer questions and facilitate productive discussions.
+  ```
+- User Message: `{{ $json.chatInput }}`
+- Memory: **Connect to Window Buffer Memory node**
+- Temperature: `0.7`
+
+**Output Field:** `output`
+
+---
+
+#### 4d. Moderation LLM Node (Room Bot)
+
+**Node Type:** `OpenAI Chat Model` (or `Anthropic Chat`)
+
+**Configuration:**
+- Model: `gpt-4o` or `claude-3-5-sonnet-20241022`
+- System Message:
+  ```
+  You are a room moderator. Help identify and address inappropriate content, conflict resolution,
+  and maintaining community guidelines. Be fair and balanced.
+  ```
+- User Message: `{{ $json.chatInput }}`
+- Memory: **Connect to Window Buffer Memory node**
+- Temperature: `0.5`
+
+**Output Field:** `output`
+
+---
+
+#### 4e. Clear Memory Branch
 
 **Node Type:** `Code` (JavaScript)
 

@@ -1,26 +1,40 @@
 # Matrix Bots
 
-A collection of Matrix bots built with Node.js and the Matrix Bot SDK. This repository contains three bots: a general chatbot for DMs, a codebot for code-related DMs, and a roombot for room-specific interactions, all with optional n8n workflow integration.
+A collection of Matrix bots built with Node.js and the Matrix Bot SDK. This repository contains two specialized bots: a DM bot for private direct messages and a Room bot for group conversations, both with optional n8n workflow integration for AI-powered responses.
 
 ## Features
 
-- **DM-Only Communication**: Chatbot and Codebot respond only to direct messages from whitelisted users.
-- **Room-Specific Communication**: Roombot responds to messages in a specific configured room.
-- **User Whitelisting**: Only messages from specified allowed users are processed (for DM bots).
-- **n8n Integration**: Trigger n8n workflows on incoming messages to automate processes.
-- **Docker Support**: Easy deployment using Docker and Docker Compose.
-- **Environment-Based Configuration**: Secure configuration through environment variables.
+- **Two Specialized Bots**: DM Bot for private conversations and Room Bot for group interactions
+- **DM-Only Communication**: DM Bot responds only to direct messages from whitelisted users
+- **Room-Specific Communication**: Room Bot responds to messages in a specific configured room
+- **User Whitelisting**: Only messages from specified allowed users are processed (for DM Bot)
+- **Command-Based Routing**: Support for multi-LLM workflows with command prefixes (!code, !translate, etc.)
+- **n8n Integration**: Trigger n8n workflows on incoming messages to automate AI responses
+- **Conversation Memory**: Up to 20 messages per user with 30-minute TTL (configurable in n8n)
+- **Docker Support**: Easy deployment using Docker and Docker Compose
+- **Environment-Based Configuration**: Secure configuration through environment variables
 
 ## Bots
 
-#### Chatbot (`chatbot/`)
-A general-purpose bot that echoes back received DMs from allowed users and triggers n8n workflows.
+### DM Bot (`dmbot/`)
+A versatile bot for private direct message conversations. It:
+- Responds only to direct messages (verified by room member count)
+- Enforces a whitelist of allowed users
+- Supports command-based routing for specialized AI assistants (!code, !translate, !analyze)
+- Maintains conversation memory per user
+- Integrates with n8n workflows for AI-powered responses
 
-#### Codebot (`codebot/`)
-A specialized bot for code-related interactions that responds only to DMs from allowed users and supports n8n workflow integration for automation.
+**Use cases**: Personal AI assistant, code help, translations, data analysis
 
-#### Roombot (`roombot/`)
-A bot configured to listen for messages in a specific Matrix room and trigger n8n workflows on all room messages.
+### Room Bot (`roombot/`)
+A bot configured for group room interactions. It:
+- Listens to messages in a specific Matrix room
+- Responds to all room members (no whitelist)
+- Supports command-based routing for moderation, announcements, etc.
+- Maintains separate conversation memory per user (not shared room memory)
+- Integrates with n8n workflows for AI-powered responses
+
+**Use cases**: Room moderation, group Q&A, announcements, community assistant
 
 ## Setup
 
@@ -44,7 +58,7 @@ This project requires **Node.js 22 or higher** due to the `@matrix-org/matrix-sd
 
 2. Create data directories for each bot:
    ```bash
-   mkdir -p chatbot/data codebot/data roombot/data n8n/data
+   mkdir -p dmbot/data roombot/data n8n/data
    ```
 
 3. Copy the environment example file:
@@ -54,26 +68,34 @@ This project requires **Node.js 22 or higher** due to the `@matrix-org/matrix-sd
 
 4. Edit `.env` with your Matrix credentials:
    - `MATRIX_HOMESERVER`: Your Matrix homeserver URL
-   - `GENERALBOT_USER_ID`: User ID for the chatbot
-   - `GENERALBOT_ACCESS_TOKEN`: Access token for the chatbot
-   - `GENERALBOT_ALLOWED_USERS`: Comma-separated list of allowed user IDs for chatbot (no trailing commas)
-   - `CODEBOT_USER_ID`: User ID for the codebot
-   - `CODEBOT_ACCESS_TOKEN`: Access token for the codebot
-   - `CODEBOT_ALLOWED_USERS`: Comma-separated list of allowed user IDs for codebot (no trailing commas)
-   - `ROOMBOT_USER_ID`: User ID for the roombot
-   - `ROOMBOT_ACCESS_TOKEN`: Access token for the roombot
-   - `TARGET_ROOM_ID`: Matrix room ID for roombot to listen to (format: `!roomHash:homeserver.com`) - **REQUIRED**
-   - `N8N_WEBHOOK_URL` (optional): n8n webhook URL to trigger workflows on incoming messages
-   - `N8N_BASIC_AUTH_ACTIVE` (optional): Enable n8n basic authentication (recommended: `true`)
-   - `N8N_USER` (optional): n8n basic auth username
-   - `N8N_PASSWORD` (optional): n8n basic auth password (use strong password!)
+   - **DM Bot Configuration:**
+     - `DMBOT_USER_ID`: User ID for the DM bot
+     - `DMBOT_ACCESS_TOKEN`: Access token for the DM bot
+     - `DMBOT_ALLOWED_USERS`: Comma-separated list of allowed user IDs (no trailing commas)
+   - **Room Bot Configuration:**
+     - `ROOMBOT_USER_ID`: User ID for the room bot
+     - `ROOMBOT_ACCESS_TOKEN`: Access token for the room bot
+     - `TARGET_ROOM_ID`: Matrix room ID for room bot to listen to (format: `!roomHash:homeserver.com`) - **REQUIRED**
+   - **n8n Configuration (optional):**
+     - `N8N_WEBHOOK_URL`: n8n webhook URL to trigger workflows on incoming messages
+     - `N8N_BASIC_AUTH_ACTIVE`: Enable n8n basic authentication (recommended: `true`)
+     - `N8N_USER`: n8n basic auth username
+     - `N8N_PASSWORD`: n8n basic auth password (use strong password!)
 
 ### Running Locally
 
 For each bot directory:
 
 ```bash
-cd chatbot
+cd dmbot
+npm install
+npm start
+```
+
+Or for the room bot:
+
+```bash
+cd roombot
 npm install
 npm start
 ```
@@ -84,11 +106,24 @@ npm start
 docker-compose up -d
 ```
 
+This will start all services:
+- `n8n` - Workflow automation (accessible at http://localhost:5678)
+- `dmbot` - DM bot for private conversations
+- `roombot` - Room bot for group conversations
+
 ## Configuration
 
 Each bot has its own configuration file in `botname/config/config.js`:
 
-**Chatbot and Codebot** (`config.js`):
+**DM Bot** (`dmbot/config/config.js`):
+- Matrix homeserver URL
+- Access token
+- User ID
+- List of allowed users
+- Response prefixes for different command types
+- Help text
+
+**Room Bot** (`roombot/config/config.js`):
 - Matrix homeserver URL
 - Access token
 - User ID
@@ -97,22 +132,31 @@ Each bot has its own configuration file in `botname/config/config.js`:
 **Roombot** (`config.js`):
 - Matrix homeserver URL
 - Access token
+- Matrix homeserver URL
+- Access token
 - User ID
 - Target room ID (which room to listen to)
+- Response prefixes for different command types
+- Help text
 
 ## Usage
 
 ### Commands
 
-All bots support command-based routing for multi-LLM workflows:
+Both bots support command-based routing for multi-LLM workflows:
 
-**Available Commands:**
+**DM Bot - Available Commands:**
 - `!help` - Display available commands and bot capabilities
 - `!clear` - Clear your conversation memory (handled in n8n workflow)
 - `!code <question>` - Route to specialized code assistant LLM
-- `!review <code>` - Route to code review LLM (CodeBot)
-- `!translate <text>` - Route to translation LLM (ChatBot)
-- `!moderate <topic>` - Route to moderation LLM (RoomBot)
+- `!translate <text>` - Route to translation LLM
+- `!analyze <data>` - Route to data analysis LLM
+
+**Room Bot - Available Commands:**
+- `!help` - Display available commands and bot capabilities
+- `!clear` - Clear your conversation memory (handled in n8n workflow)
+- `!moderate <topic>` - Route to moderation LLM
+- `!announce <message>` - Route to announcement LLM
 
 **Command Rules:**
 - Commands must be lowercase (`!code`, not `!Code`)
@@ -126,8 +170,8 @@ All bots support command-based routing for multi-LLM workflows:
 - Use `!clear` to manually reset conversation history
 - Memory is shared across all LLMs in the same bot workflow
 
-### Chatbot and Codebot
-Once running, these bots will:
+### DM Bot
+Once running, the DM bot will:
 1. Connect to the Matrix homeserver
 2. Listen for room invitations (and ignore them)
 3. **Verify messages are in DM rooms** (exactly 2 members: bot + user)
@@ -136,8 +180,8 @@ Once running, these bots will:
 6. Respond with AI-generated messages prefixed with agent name (e.g., `[Code Expert]`)
 7. Maintain 20-message conversation history per user with 30-min TTL
 
-### Roombot
-Once running, the roombot will:
+### Room Bot
+Once running, the room bot will:
 1. Connect to the Matrix homeserver
 2. Verify `TARGET_ROOM_ID` is configured (fails if not set)
 3. Listen for messages in the configured room (`TARGET_ROOM_ID`)
@@ -178,7 +222,7 @@ When a message is received, the bot sends the following JSON payload to the n8n 
   "originalMessage": "!code how to reverse string",
   "roomId": "!roomIdHash:example.com",
   "timestamp": "2026-02-06T12:34:56.789Z",
-  "botType": "chatbot|codebot|roombot"
+  "botType": "dmbot|roombot"
 }
 ```
 
@@ -187,7 +231,7 @@ When a message is received, the bot sends the following JSON payload to the n8n 
 - `chatInput` - Extracted input after command prefix (or full message if no command)
 - `commandType` - Parsed command for routing (`general` if no `!` prefix)
 - `originalMessage` - Full original message including command prefix
-- `botType` - Which bot sent the message (for statistics/debugging)
+- `botType` - Which bot sent the message (`dmbot` or `roombot`)
 
 ### n8n Workflow Response Format
 
@@ -202,7 +246,7 @@ Your n8n workflow should return a JSON response:
 
 **Fields:**
 - `output` - Required. The response text to send back to user
-- `agentType` - Optional. Used to select response prefix (e.g., `[Code Expert]` vs `[ChatBot]`)
+- `agentType` - Optional. Used to select response prefix (e.g., `[Code Expert]` vs `[Assistant]`)
 
 ### Example n8n Workflow Structure
 
@@ -235,11 +279,11 @@ This allows you to:
 
 ## Security
 
-For DM verification via room member count (not metadata)
-- ✅ User whitelist with empty value filtering
-- ✅ Required TARGET_ROOM_ID validation for roombot
+- ✅ DM verification via room member count (not metadata)
+- ✅ User whitelist with empty value filtering (DM Bot)
+- ✅ Required TARGET_ROOM_ID validation (Room Bot)
 - ✅ HTTPS warning for n8n webhooks (except localhost)
-- ✅ 5-second timeout for webhook requests
+- ✅ 30-second timeout for webhook requests
 - ✅ No permanent data storage
 - ✅ No arbitrary code execution
 - ✅ Requires Node.js 22+ (enforced in package.json)
@@ -247,17 +291,28 @@ For DM verification via room member count (not metadata)
 - ✅ n8n basic authentication support
 - ⚠️ Review SECURITY.md for known transitive dependency vulnerabilities
 
-**Recent Security Fixes (2026-02-05):**
-- Fixed critical DM detection bug (bots now properly restrict to DMs)
-- Fixed whitelist configuration handling
-- Added TARGET_ROOM_ID validation
-- Fixed Docker volume mappings
-- Added comprehensive error handling
-- See [CHANGELOG.md](CHANGELOG.md) for complete detail
-- ✅ Requires Node.js 22+ (enforced in package.json)
-- ✅ Docker deployment recommended
-- ⚠️ Review SECURITY.md for known transitive dependency vulnerabilities
+## Architecture
 
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Matrix Homeserver                    │
+└─────────────────────────────────────────────────────────┘
+                │                    │
+                │                    │
+        ┌───────▼────────┐   ┌──────▼────────┐
+        │     DM Bot     │   │   Room Bot    │
+        │  (Whitelisted  │   │  (Specific    │
+        │      DMs)      │   │    Room)      │
+        └───────┬────────┘   └──────┬────────┘
+                │                    │
+                └──────────┬─────────┘
+                           │
+                    ┌──────▼──────┐
+                    │     n8n     │
+                    │  Workflow   │
+                    │  (AI/LLM)   │
+                    └─────────────┘
+```
 
 ## License
 
