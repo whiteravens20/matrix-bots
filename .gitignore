@@ -1,6 +1,5 @@
 .env
 .env.local
-package-lock.json
 node_modules/
 dist/
 build/
@@ -15,4 +14,4 @@ yarn-error.log*
 bot.json
 bot-*.json
 */data/
-n8n/data/
+n8n/
