@@ -53,6 +53,9 @@ jobs:
   docker-build:
     name: Validate Docker build (${{ matrix.bot }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     strategy:
       fail-fast: false
       matrix:
@@ -64,11 +67,32 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Build image (no push)
+      - name: Build image (load locally)
         uses: docker/build-push-action@v7
         with:
           context: ./${{ matrix.bot }}
           push: false
+          load: true
           tags: matrix-bots-${{ matrix.bot }}:ci
           cache-from: type=gha,scope=${{ matrix.bot }}
           cache-to: type=gha,mode=max,scope=${{ matrix.bot }}
+
+      # Scan the built image now so HIGH/CRITICAL CVEs in OS or bundled tools
+      # surface on the PR — not at release time.
+      - name: Trivy image scan (${{ matrix.bot }})
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: matrix-bots-${{ matrix.bot }}:ci
+          severity: HIGH,CRITICAL
+          trivyignores: .trivyignore
+          exit-code: '1'
+          format: sarif
+          output: trivy-image-${{ matrix.bot }}.sarif
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: trivy-image-${{ matrix.bot }}.sarif
+          category: trivy-image-${{ matrix.bot }}
