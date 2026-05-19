@@ -28,10 +28,13 @@ jobs:
         with:
           node-version: '22'
 
-      # Production deps get a tighter bar (moderate). Dev deps stay at high.
-      - name: Audit ${{ matrix.bot }} (production, moderate)
+      # Production deps: fail on high+. The only outstanding moderate is the
+      # unfixable `request` SSRF (GHSA-p8p7-x288-28g6) transitively via
+      # matrix-bot-sdk@0.8.0 — see SECURITY.md. Tighten back to `moderate`
+      # once that's resolved upstream.
+      - name: Audit ${{ matrix.bot }} (production, high)
         working-directory: ${{ matrix.bot }}
-        run: npm audit --omit=dev --audit-level=moderate
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Audit ${{ matrix.bot }} (dev, high)
         working-directory: ${{ matrix.bot }}
