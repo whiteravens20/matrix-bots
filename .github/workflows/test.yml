@@ -1,0 +1,74 @@
+name: Test
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (${{ matrix.bot }}, Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        bot: [dmbot, roombot]
+        node: ['22']
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: ${{ matrix.bot }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.bot }}
+        run: npm ci --ignore-scripts
+
+      # No test suite exists yet (tracked as a follow-up in STANDARDIZATION_REPORT.md).
+      # `npm test` will fall back to the default "Error: no test specified" exit code 1
+      # once tests are added; until then we run an existence check so the job can be
+      # promoted to a required check without falsely failing.
+      - name: Run tests (if defined)
+        working-directory: ${{ matrix.bot }}
+        run: |
+          if node -e "const p = require('./package.json'); process.exit(p.scripts && p.scripts.test && !/no test specified/.test(p.scripts.test) ? 0 : 1)"; then
+            npm test
+          else
+            echo "::notice::No test script defined for ${{ matrix.bot }} yet — skipping."
+          fi
+
+      - name: Syntax check (node --check)
+        working-directory: ${{ matrix.bot }}
+        run: |
+          find . -path ./node_modules -prune -o -name '*.js' -print | xargs -r -n1 node --check
+
+  docker-build:
+    name: Validate Docker build (${{ matrix.bot }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        bot: [dmbot, roombot]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build image (no push)
+        uses: docker/build-push-action@v7
+        with:
+          context: ./${{ matrix.bot }}
+          push: false
+          tags: matrix-bots-${{ matrix.bot }}:ci
+          cache-from: type=gha,scope=${{ matrix.bot }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.bot }}
