@@ -9,3 +9,13 @@
 # Re-evaluate when matrix-bot-sdk migrates off `request` or when we
 # switch SDKs.
 CVE-2023-28155
+
+# --- Vendored inside the npm CLI in the node:22-alpine base image ---
+# brace-expansion 5.0.5 has a ReDoS via `max` bypass (fixed in 5.0.6).
+# The vulnerable copy lives at
+# /usr/local/lib/node_modules/npm/node_modules/brace-expansion, i.e. inside
+# the npm CLI bundle — not in our application deps. npm itself is not exposed
+# to user-controlled input at bot runtime, so this is not exploitable in our
+# containers. npm@latest (11.14.1) still bundles 5.0.5; remove this entry
+# once an npm release ships brace-expansion >= 5.0.6.
+CVE-2026-45149
