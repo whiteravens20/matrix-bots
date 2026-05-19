@@ -1,0 +1,94 @@
+name: Security
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  schedule:
+    # Weekly on Monday at 09:00 UTC
+    - cron: '0 9 * * 1'
+
+jobs:
+  audit:
+    name: npm audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        bot: [dmbot, roombot]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      # Production deps: fail on high+. The only outstanding moderate is the
+      # unfixable `request` SSRF (GHSA-p8p7-x288-28g6) transitively via
+      # matrix-bot-sdk@0.8.0 — see SECURITY.md. Tighten back to `moderate`
+      # once that's resolved upstream.
+      - name: Audit ${{ matrix.bot }} (production, high)
+        working-directory: ${{ matrix.bot }}
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Audit ${{ matrix.bot }} (dev, high)
+        working-directory: ${{ matrix.bot }}
+        run: npm audit --audit-level=high
+
+      # Verify every installed tarball has a valid registry signature.
+      - name: Install ${{ matrix.bot }} (for signature audit)
+        working-directory: ${{ matrix.bot }}
+        run: npm ci --ignore-scripts
+
+      - name: Verify ${{ matrix.bot }} signatures
+        working-directory: ${{ matrix.bot }}
+        run: npm audit signatures
+
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/dependency-review-action@v4.9.0
+        with:
+          fail-on-severity: high
+
+  trivy-fs:
+    name: Trivy filesystem scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run Trivy on repository
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          format: sarif
+          output: trivy-fs.sarif
+          trivyignores: .trivyignore
+          limit-severities-for-sarif: true
+          exit-code: '1'
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs

@@ -1,5 +1,9 @@
 # Matrix Bots
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Test](https://github.com/whiteravens20/matrix-bots/actions/workflows/test.yml/badge.svg?branch=dev)](https://github.com/whiteravens20/matrix-bots/actions/workflows/test.yml)
+[![CodeQL](https://github.com/whiteravens20/matrix-bots/actions/workflows/codeql.yml/badge.svg?branch=dev)](https://github.com/whiteravens20/matrix-bots/actions/workflows/codeql.yml)
+
 A collection of Matrix bots built with Node.js and the Matrix Bot SDK. This repository contains two specialized bots: a DM bot for private direct messages and a Room bot for group conversations, both with optional n8n workflow integration for AI-powered responses.
 
 ## Features
@@ -338,6 +342,14 @@ This allows you to:
                     └─────────────┘
 ```
 
+## Contributing
+
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request, and follow the [Code of Conduct](CODE_OF_CONDUCT.md). Active development happens on the `dev` branch; `main` is protected and requires signed commits.
+
+## Security
+
+Do not report security vulnerabilities through public GitHub issues. Use [private vulnerability reporting](https://github.com/whiteravens20/matrix-bots/security/advisories/new) instead. See [SECURITY.md](SECURITY.md) for the full disclosure policy and the running list of known transitive vulnerabilities.
+
 ## License
 
-See LICENSE file for details.
+Released under the [MIT License](LICENSE).

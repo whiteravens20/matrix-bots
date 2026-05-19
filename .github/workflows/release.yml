@@ -1,0 +1,164 @@
+# ── matrix-bots — Release ─────────────────────────────────────────────────────
+#
+# Triggered by a semver tag (vX.Y.Z) pushed from the main branch.
+# Tags created on any other branch are silently ignored.
+# Builds the dmbot and roombot Docker images, pushes them to GitHub Container
+# Registry (ghcr.io), then scans each pushed image for HIGH/CRITICAL CVEs.
+#
+# Image names:
+#   ghcr.io/whiteravens20/matrix-bots-dmbot
+#   ghcr.io/whiteravens20/matrix-bots-roombot
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  check-branch:
+    name: Verify tag is on main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      on-main: ${{ steps.check.outputs.on-main }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Check branch containment
+        id: check
+        run: |
+          if git branch -r --contains "${{ github.sha }}" | grep -q 'origin/main'; then
+            echo "on-main=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "on-main=false" >> "$GITHUB_OUTPUT"
+            echo "::error::Tag ${{ github.ref_name }} does not point to a commit on main. Release skipped."
+          fi
+
+  build-push:
+    name: Build & push ${{ matrix.bot }} image
+    needs: check-branch
+    if: needs.check-branch.outputs.on-main == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        bot: [dmbot, roombot]
+
+    outputs:
+      dmbot-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Compute Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.bot }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=main
+          labels: |
+            org.opencontainers.image.title=matrix-bots ${{ matrix.bot }}
+            org.opencontainers.image.description=Matrix bot (${{ matrix.bot }}) routing messages through n8n
+            org.opencontainers.image.url=https://github.com/${{ github.repository }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push ${{ matrix.bot }}
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: ./${{ matrix.bot }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.bot }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.bot }}
+          provenance: true
+          sbom: true
+
+      - name: Trivy scan ${{ matrix.bot }}
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.bot }}@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          trivyignores: .trivyignore
+          exit-code: '1'
+          format: sarif
+          output: trivy-${{ matrix.bot }}.sarif
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: trivy-${{ matrix.bot }}.sarif
+          category: trivy-${{ matrix.bot }}
+
+  github-release:
+    name: Create GitHub Release
+    needs: [check-branch, build-push]
+    if: needs.check-branch.outputs.on-main == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Extract tag message
+        id: tag-msg
+        run: |
+          MSG=$(git tag -l --format='%(contents)' "${{ github.ref_name }}" | sed '/-----BEGIN SSH SIGNATURE-----/,/-----END SSH SIGNATURE-----/d' | head -100)
+          {
+            echo "message<<GH_EOF"
+            echo "$MSG"
+            echo "GH_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
+          append_body: true
+          body: |
+            ${{ steps.tag-msg.outputs.message }}
+
+            ---
+            ## Docker images
+
+            ```
+            docker pull ghcr.io/${{ github.repository }}-dmbot:${{ github.ref_name }}
+            docker pull ghcr.io/${{ github.repository }}-roombot:${{ github.ref_name }}
+            ```
+
+            | Tag | Description |
+            |---|---|
+            | `${{ github.ref_name }}` | This exact release (immutable) |
+            | `:main` | Always the latest stable production release |

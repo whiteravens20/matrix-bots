@@ -1,0 +1,26 @@
+# ── Code Owners ───────────────────────────────────────────────────────────────
+# GitHub enforces that at least one owner approves any PR touching these paths.
+# Configure branch protection (Settings → Branches → main → Require review from
+# Code Owners) to make this mandatory.
+#
+# Paths are checked most-specific to least-specific; last matching rule wins.
+
+# Default: every file requires owner review
+* @pavlojs
+
+# ── CI/CD & supply chain ──────────────────────────────────────────────────────
+# Workflow files and Dependabot config are high-risk supply-chain surfaces.
+/.github/ @pavlojs
+
+# ── Bots ──────────────────────────────────────────────────────────────────────
+/dmbot/   @pavlojs
+/roombot/ @pavlojs
+
+# ── Container & orchestration ─────────────────────────────────────────────────
+/docker-compose.yml @pavlojs
+/dmbot/Dockerfile   @pavlojs
+/roombot/Dockerfile @pavlojs
+
+# ── Security & legal docs ─────────────────────────────────────────────────────
+/SECURITY.md @pavlojs
+/LICENSE     @pavlojs

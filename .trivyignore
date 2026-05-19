@@ -1,0 +1,11 @@
+# Trivy ignore list — keep entries minimal and justified.
+# Format: one advisory ID per line. Optional `exp: YYYY-MM-DD` for a hard expiry.
+# See: https://aquasecurity.github.io/trivy/latest/docs/configuration/filtering/#trivyignore
+
+# --- Unfixable transitive findings via matrix-bot-sdk@0.8.0 ---
+# The deprecated `request` library (and its companions request-promise,
+# request-promise-core, tough-cookie, form-data, qs) is pulled in by
+# matrix-bot-sdk and has no upstream patch. Tracked in SECURITY.md.
+# Re-evaluate when matrix-bot-sdk migrates off `request` or when we
+# switch SDKs.
+CVE-2023-28155

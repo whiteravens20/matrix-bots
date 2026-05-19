@@ -1,0 +1,80 @@
+# ── Dependabot configuration ──────────────────────────────────────────────────
+# Keeps GitHub Actions and npm dependencies up to date automatically.
+# Opens PRs weekly against `dev` — CI must pass before merging.
+#
+# Versioning strategy:
+#   - github-actions: bumps the version tag in `uses:` lines (e.g. @v3 → @v4)
+#   - npm: respects semver ranges in package.json; groups minor+patch into one PR
+
+version: 2
+
+updates:
+  # ── GitHub Actions ───────────────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: "ci"
+
+  # ── DM bot npm ──────────────────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /dmbot
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - dmbot
+    commit-message:
+      prefix: "chore(dmbot)"
+    groups:
+      dmbot-non-breaking:
+        update-types:
+          - minor
+          - patch
+
+  # ── Room bot npm ────────────────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /roombot
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - roombot
+    commit-message:
+      prefix: "chore(roombot)"
+    groups:
+      roombot-non-breaking:
+        update-types:
+          - minor
+          - patch
+
+  # ── Docker (compose images + Dockerfiles) ────────────────────────────────────
+  - package-ecosystem: docker
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - docker
+    commit-message:
+      prefix: "chore(docker)"

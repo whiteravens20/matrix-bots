@@ -1,0 +1,73 @@
+name: Branch Protection Audit
+
+# Asserts that branch protection on `main` still matches expectations.
+# Drift here (someone disabling required reviews, signed commits, or required
+# checks) silently weakens the supply chain — this catches it within a day.
+
+on:
+  schedule:
+    # Daily at 07:00 UTC
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  audit:
+    name: Verify main branch protection
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Fetch protection rules for main
+        env:
+          GH_TOKEN: ${{ secrets.BRANCH_PROTECTION_READ_TOKEN || github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          PROT=$(gh api "repos/${REPO}/branches/main/protection" 2>/dev/null || echo '{}')
+
+          if [ "$PROT" = "{}" ]; then
+            echo "::error::Could not fetch branch protection. Ensure BRANCH_PROTECTION_READ_TOKEN is set with 'Administration: read'."
+            exit 1
+          fi
+
+          echo "$PROT" | jq .
+
+          fail=0
+          assert() {
+            local label="$1"
+            local expr="$2"
+            local actual
+            actual=$(echo "$PROT" | jq -r "$expr")
+            if [ "$actual" != "true" ]; then
+              echo "::error::Branch protection drift — ${label} is '${actual}', expected 'true'"
+              fail=1
+            else
+              echo "ok: ${label}"
+            fi
+          }
+
+          assert "require code-owner reviews"   '.required_pull_request_reviews.require_code_owner_reviews // false'
+          assert "required signatures"           '.required_signatures.enabled // false'
+          assert "block force pushes"            '(.allow_force_pushes.enabled // false) | not'
+          assert "block branch deletions"        '(.allow_deletions.enabled // false) | not'
+
+          REQUIRED_CHECKS=$(echo "$PROT" | jq -r '.required_status_checks.contexts[]? // empty' | sort)
+          echo "Configured required checks:"
+          echo "$REQUIRED_CHECKS" | sed 's/^/  - /'
+
+          for must in "Test (dmbot, Node 22)" "Test (roombot, Node 22)" "Analyze (javascript)"; do
+            if ! echo "$REQUIRED_CHECKS" | grep -Fxq "$must"; then
+              echo "::warning::Required status check missing (recommended): '${must}'"
+            fi
+          done
+
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::Branch-protection audit FAILED — see annotations above."
+            exit 1
+          fi
+
+          echo "Branch-protection audit passed."
