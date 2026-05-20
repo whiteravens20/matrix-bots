@@ -57,7 +57,7 @@ if (config.matrix.accessToken) {
   );
 } else if (config.matrix.username && config.matrix.password) {
   // Login with username/password to get fresh token
-  console.log(`Logging in as ${config.matrix.username}...`);
+  console.log("Logging in with username and password...");
   const auth = new MatrixAuth(config.matrix.homeserverUrl);
   const clientData = await auth.passwordLogin(config.matrix.username, config.matrix.password);
   
