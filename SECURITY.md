@@ -20,6 +20,8 @@ The matrix-bot-sdk package depends on several deprecated packages that have know
 ### Root Cause
 These vulnerabilities exist in transitive dependencies of `matrix-bot-sdk` (^0.8.0), which is the latest available version. The matrix-bot-sdk maintains these deprecated dependencies for backward compatibility.
 
+The `request` SSRF (GHSA-p8p7-x288-28g6) has no upstream fix; the risk-accept decision is recorded in [docs/adr/0001-accept-request-ssrf.md](docs/adr/0001-accept-request-ssrf.md).
+
 ### Impact Assessment
 
 **Risk Level: LOW** for this application because:
