@@ -32,18 +32,9 @@ jobs:
         working-directory: ${{ matrix.bot }}
         run: npm ci --ignore-scripts
 
-      # No test suite exists yet (tracked as a follow-up in STANDARDIZATION_REPORT.md).
-      # `npm test` will fall back to the default "Error: no test specified" exit code 1
-      # once tests are added; until then we run an existence check so the job can be
-      # promoted to a required check without falsely failing.
-      - name: Run tests (if defined)
+      - name: Run tests
         working-directory: ${{ matrix.bot }}
-        run: |
-          if node -e "const p = require('./package.json'); process.exit(p.scripts && p.scripts.test && !/no test specified/.test(p.scripts.test) ? 0 : 1)"; then
-            npm test
-          else
-            echo "::notice::No test script defined for ${{ matrix.bot }} yet — skipping."
-          fi
+        run: npm test
 
       - name: Syntax check (node --check)
         working-directory: ${{ matrix.bot }}

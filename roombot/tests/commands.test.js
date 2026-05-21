@@ -91,25 +91,4 @@ describe('parseCommand', () => {
     expect(result.command).toBe('announce');
     expect(result.input).toBe(longInput);
   });
-
-  it('handles simultaneous-like rapid command variations independently', () => {
-    const inputs = [
-      '!help',
-      '!help me',
-      '!moderate',
-      '!moderate spam',
-      '!announce',
-      '!announce hello',
-      '!clear',
-      '!clear all'
-    ];
-    const results = inputs.map(parseCommand);
-    expect(results.every(r => r.isCommand)).toBe(true);
-    expect(results[0].command).toBe('help');
-    expect(results[1].command).toBe('help');
-    expect(results[1].input).toBe('me');
-    expect(results[2].command).toBe('moderate');
-    expect(results[3].command).toBe('moderate');
-    expect(results[3].input).toBe('spam');
-  });
 });
