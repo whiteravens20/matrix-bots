@@ -79,13 +79,18 @@ Sign your commits (`git commit -S`). The `main` branch requires signed commits.
 
 ## Testing
 
-The repo does not yet have a test suite. The `test.yml` workflow currently runs `npm ci` in each bot directory and is a no-op for tests until one is added. When you add tests:
+Each bot has a [Vitest](https://vitest.dev/) suite. Run it from the bot directory:
 
-- Place them in `dmbot/test/` and `roombot/test/`.
-- Wire `npm test` in each bot's `package.json`.
-- Update `.github/workflows/test.yml` if additional steps are needed.
+```bash
+cd dmbot && npm test     # or: cd roombot && npm test
+```
 
-For now, manual verification against a real homeserver is expected. Document what you exercised in the PR description.
+The `test.yml` workflow runs `npm test` for both bots on every push and PR. When adding tests:
+
+- Place them in `dmbot/tests/` and `roombot/tests/` as `*.test.js`.
+- Keep logic testable by injecting dependencies — see `lib/handler.js` (`createMessageHandler`) and `lib/commands.js`, which are pure modules with no Matrix client at import time.
+
+Automated tests cover command parsing and the message-handling flow. Live behaviour (Matrix login, room joins, the end-to-end n8n round-trip) still needs manual verification against a real homeserver — document what you exercised in the PR description.
 
 ## Submitting Changes
 

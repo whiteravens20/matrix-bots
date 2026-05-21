@@ -305,6 +305,16 @@ This allows you to:
 - Uses `axios` for HTTP requests to n8n webhooks
 - Environment variables are loaded using `dotenv`
 
+### Tests
+
+Each bot has a [Vitest](https://vitest.dev/) suite covering command parsing (`lib/commands.js`) and the message-handling flow (`lib/handler.js`):
+
+```bash
+cd dmbot && npm test     # or: cd roombot && npm test
+```
+
+CI runs these for both bots on every push and pull request.
+
 ## Security
 
 - ✅ DM verification via room member count (not metadata)
