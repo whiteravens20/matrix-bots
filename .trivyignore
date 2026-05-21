@@ -4,11 +4,19 @@
 
 # --- Unfixable transitive findings via matrix-bot-sdk@0.8.0 ---
 # The deprecated `request` library (and its companions request-promise,
-# request-promise-core, tough-cookie, form-data, qs) is pulled in by
+# request-promise-core, tough-cookie, form-data, qs, uuid) is pulled in by
 # matrix-bot-sdk and has no upstream patch. Tracked in SECURITY.md.
 # Re-evaluate when matrix-bot-sdk migrates off `request` or when we
 # switch SDKs.
+#
+# CVE-2023-28155 — request: SSRF via cross-protocol redirect.
+# CVE-2026-41907 — uuid 3.4.0: missing buffer bounds check in v3/v5 when a
+#   `buf` argument is supplied. `request` calls uuid() with no arguments, so
+#   the vulnerable code path is unreachable from our usage. uuid is fixed in
+#   v11+; request@2.88.2 hard-pins uuid@^3.3.2, so there is no patch path
+#   short of replacing matrix-bot-sdk.
 CVE-2023-28155
+CVE-2026-41907
 
 # --- Vendored inside the npm CLI in the node:22-alpine base image ---
 # brace-expansion 5.0.5 has a ReDoS via `max` bypass (fixed in 5.0.6).
