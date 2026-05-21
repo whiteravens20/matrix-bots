@@ -2,40 +2,7 @@ import 'dotenv/config';
 import { MatrixClient, SimpleFsStorageProvider, MatrixAuth } from "matrix-bot-sdk";
 import axios from "axios";
 import config from "./config/config.js";
-
-// Command parser for multi-LLM routing
-function parseCommand(message) {
-  const trimmed = message.trim();
-  
-  // Check if message starts with !
-  if (!trimmed.startsWith('!')) {
-    return {
-      command: 'general',
-      input: message,
-      isCommand: false
-    };
-  }
-  
-  // Extract command (lowercase only) and input
-  const firstSpace = trimmed.indexOf(' ');
-  if (firstSpace === -1) {
-    // Command without arguments (e.g., "!help")
-    return {
-      command: trimmed.substring(1).toLowerCase(),
-      input: '',
-      isCommand: true
-    };
-  }
-  
-  const command = trimmed.substring(1, firstSpace).toLowerCase();
-  const input = trimmed.substring(firstSpace + 1).trim();
-  
-  return {
-    command: command,
-    input: input,
-    isCommand: true
-  };
-}
+import { parseCommand } from "./lib/commands.js";
 
 // Initialize storage
 const storage = new SimpleFsStorageProvider(`./data/bot-storage.json`);

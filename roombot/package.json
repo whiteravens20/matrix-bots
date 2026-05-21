@@ -7,7 +7,11 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.5"
   },
   "dependencies": {
     "matrix-bot-sdk": "^0.8.0",
