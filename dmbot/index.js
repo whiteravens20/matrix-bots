@@ -3,6 +3,7 @@ import { MatrixClient, SimpleFsStorageProvider, MatrixAuth } from "matrix-bot-sd
 import axios from "axios";
 import config from "./config/config.js";
 import { createMessageHandler } from "./lib/handler.js";
+import { createInviteHandler } from "./lib/invite-handler.js";
 
 // Initialize storage
 const storage = new SimpleFsStorageProvider(`./data/bot-storage.json`);
@@ -46,10 +47,8 @@ await client.start();
 const botUserId = await client.getUserId();
 console.log(`✅ DM Bot started: ${botUserId}`);
 
-// Ignoring invitations
-client.on("room.invite", async (roomId, event) => {
-  console.log(`Ignoring invitation to room ${roomId} from ${event.sender}`);
-});
+// Accept or reject invitations based on whitelist
+client.on("room.invite", createInviteHandler({ client, config }));
 
 // DM-only with whitelist
 client.on("room.message", createMessageHandler({ client, config, axios, botUserId }));
