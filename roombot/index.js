@@ -3,6 +3,7 @@ import { MatrixClient, SimpleFsStorageProvider, MatrixAuth } from "matrix-bot-sd
 import axios from "axios";
 import config from "./config/config.js";
 import { createMessageHandler } from "./lib/handler.js";
+import { createInviteHandler } from "./lib/invite-handler.js";
 
 // Validate TARGET_ROOM_ID is set
 if (!config.bot.targetRoomId) {
@@ -51,10 +52,8 @@ await client.start();
 const botUserId = await client.getUserId();
 console.log(`✅ Room Bot started: ${botUserId} - Listening in room: ${config.bot.targetRoomId}`);
 
-// Ignore invitations
-client.on("room.invite", async (roomId, event) => {
-  console.log(`Ignoring invitation to room ${roomId} from ${event.sender}`);
-});
+// Reject invitations to non-target rooms
+client.on("room.invite", createInviteHandler({ client, config }));
 
 // Listen for messages in configured room only
 client.on("room.message", createMessageHandler({ client, config, axios, botUserId }));
