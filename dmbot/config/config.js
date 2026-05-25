@@ -8,6 +8,9 @@ export default {
     password: process.env.MATRIX_PASSWORD
   },
   bot: {
+    mode: 'dm',
+    botType: 'dmbot',
+    fallbackMessageSuffix: '',
     allowedUsers: (process.env.ALLOWED_USERS || "").split(",").filter(u => u.trim()),
     responsePrefix: process.env.BOT_RESPONSE_PREFIX || "[DM Bot]",
     prefixes: {
