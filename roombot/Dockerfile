@@ -7,7 +7,7 @@ RUN npm install -g npm@latest && npm cache clean --force
 WORKDIR /app
 
 # Copy shared code (used by both bots) first so it is cached across builds.
-COPY shared/ ./shared/
+COPY shared/lib ./shared/lib
 
 # Copy package files
 COPY roombot/package.json roombot/package-lock.json* ./roombot/
@@ -19,9 +19,9 @@ RUN npm install --production --prefix ./roombot
 COPY roombot/index.js ./roombot/index.js
 COPY roombot/config ./roombot/config
 
-WORKDIR /app/roombot
+# Create data directory
+RUN mkdir -p /app/roombot/data
 
-# config.js will be mounted from host
-VOLUME [ "/app/roombot/config" ]
+WORKDIR /app/roombot
 
 CMD ["node", "index.js"]
