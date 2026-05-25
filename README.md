@@ -307,13 +307,15 @@ This allows you to:
 
 ### Tests
 
-Each bot has a [Vitest](https://vitest.dev/) suite covering command parsing (`lib/commands.js`) and the message-handling flow (`lib/handler.js`):
+Shared logic lives in `shared/lib/` and is tested once in `shared/tests/`. Each bot has a minimal wiring test to confirm it imports the shared modules correctly:
 
 ```bash
-cd dmbot && npm test     # or: cd roombot && npm test
+cd shared && npm test       # shared logic tests
+cd dmbot && npm test        # bot wiring test
+cd roombot && npm test      # bot wiring test
 ```
 
-CI runs these for both bots on every push and pull request.
+CI runs these for all three directories on every push and pull request.
 
 ## Security
 

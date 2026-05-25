@@ -23,7 +23,9 @@ services:
       start_period: 10s
 
   dmbot:
-    build: ./dmbot
+    build:
+      context: .
+      dockerfile: ./dmbot/Dockerfile
     container_name: dmbot
     restart: unless-stopped
     depends_on:
@@ -40,8 +42,8 @@ services:
       ALLOWED_USERS: ${DMBOT_ALLOWED_USERS}
       N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
     volumes:
-      - ./dmbot/data:/app/data
-      - ./dmbot/config:/app/config
+      - ./dmbot/data:/app/dmbot/data
+      - ./dmbot/config:/app/dmbot/config
     healthcheck:
       test: ["CMD", "node", "-e", "process.exit(0)"]
       interval: 30s
@@ -50,7 +52,9 @@ services:
       start_period: 10s
 
   roombot:
-    build: ./roombot
+    build:
+      context: .
+      dockerfile: ./roombot/Dockerfile
     container_name: roombot
     restart: unless-stopped
     depends_on:
@@ -67,8 +71,8 @@ services:
       TARGET_ROOM_ID: ${TARGET_ROOM_ID}
       N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
     volumes:
-      - ./roombot/data:/app/data
-      - ./roombot/config:/app/config
+      - ./roombot/data:/app/roombot/data
+      - ./roombot/config:/app/roombot/config
     healthcheck:
       test: ["CMD", "node", "-e", "process.exit(0)"]
       interval: 30s

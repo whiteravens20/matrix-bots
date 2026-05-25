@@ -32,9 +32,14 @@ jobs:
         working-directory: ${{ matrix.bot }}
         run: npm ci --ignore-scripts
 
-      - name: Run tests
+      - name: Run bot tests
         working-directory: ${{ matrix.bot }}
         run: npm test
+
+      - name: Run shared tests
+        if: matrix.bot == 'dmbot'
+        working-directory: ${{ matrix.bot }}
+        run: npx vitest run ../shared/tests
 
       - name: Syntax check (node --check)
         working-directory: ${{ matrix.bot }}
@@ -61,7 +66,8 @@ jobs:
       - name: Build image (load locally)
         uses: docker/build-push-action@v7
         with:
-          context: ./${{ matrix.bot }}
+          context: .
+          dockerfile: ./${{ matrix.bot }}/Dockerfile
           push: false
           load: true
           tags: matrix-bots-${{ matrix.bot }}:ci

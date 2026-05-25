@@ -6,17 +6,22 @@ RUN npm install -g npm@latest && npm cache clean --force
 
 WORKDIR /app
 
+# Copy shared code (used by both bots) first so it is cached across builds.
+COPY shared/ ./shared/
+
 # Copy package files
-COPY package*.json ./
+COPY dmbot/package*.json ./dmbot/
 
 # Install dependencies
-RUN npm install --production
+RUN npm install --production --prefix ./dmbot
 
 # Copy application files
-COPY . .
+COPY dmbot/ ./dmbot/
 
 # Create data directory
-RUN mkdir -p /app/data
+RUN mkdir -p /app/dmbot/data
+
+WORKDIR /app/dmbot
 
 # Run the bot
-CMD ["npm", "start"]
+CMD ["node", "index.js"]

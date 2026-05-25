@@ -79,16 +79,19 @@ Sign your commits (`git commit -S`). The `main` branch requires signed commits.
 
 ## Testing
 
-Each bot has a [Vitest](https://vitest.dev/) suite. Run it from the bot directory:
+Shared logic is tested in `shared/tests/`; each bot only has a minimal wiring test in `botname/tests/`.
 
 ```bash
-cd dmbot && npm test     # or: cd roombot && npm test
+cd shared && npm test        # shared logic tests
+cd dmbot && npm test         # bot wiring test
+cd roombot && npm test       # bot wiring test
 ```
 
-The `test.yml` workflow runs `npm test` for both bots on every push and PR. When adding tests:
+The `test.yml` workflow runs `npm test` for `shared`, `dmbot`, and `roombot` on every push and PR. When adding tests:
 
-- Place them in `dmbot/tests/` and `roombot/tests/` as `*.test.js`.
-- Keep logic testable by injecting dependencies — see `lib/handler.js` (`createMessageHandler`) and `lib/commands.js`, which are pure modules with no Matrix client at import time.
+- Place shared tests in `shared/tests/` as `*.test.js`.
+- Place bot wiring tests in `dmbot/tests/` or `roombot/tests/` as `*.test.js`.
+- Keep logic testable by injecting dependencies — see `shared/lib/handler.js` (`createMessageHandler`) and `shared/lib/commands.js`, which are pure modules with no Matrix client at import time.
 
 Automated tests cover command parsing and the message-handling flow. Live behaviour (Matrix login, room joins, the end-to-end n8n round-trip) still needs manual verification against a real homeserver — document what you exercised in the PR description.
 

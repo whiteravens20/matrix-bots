@@ -2,8 +2,8 @@ import 'dotenv/config';
 import { MatrixClient, SimpleFsStorageProvider, MatrixAuth } from "matrix-bot-sdk";
 import axios from "axios";
 import config from "./config/config.js";
-import { createMessageHandler } from "./lib/handler.js";
-import { createInviteHandler } from "./lib/invite-handler.js";
+import { createMessageHandler } from "../shared/lib/handler.js";
+import { createInviteHandler } from "../shared/lib/invite-handler.js";
 
 // Initialize storage
 const storage = new SimpleFsStorageProvider(`./data/bot-storage.json`);

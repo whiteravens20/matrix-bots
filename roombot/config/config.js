@@ -8,6 +8,9 @@ export default {
     password: process.env.MATRIX_PASSWORD
   },
   bot: {
+    mode: 'room',
+    botType: 'roombot',
+    fallbackMessageSuffix: ' in this room',
     targetRoomId: process.env.TARGET_ROOM_ID,
     responsePrefix: process.env.BOT_RESPONSE_PREFIX || "[Room Bot]",
     prefixes: {
