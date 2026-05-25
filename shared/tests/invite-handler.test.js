@@ -124,4 +124,16 @@ describe('createInviteHandler', () => {
       expect(client.leaveRoom).toHaveBeenCalledWith(ROOM);
     });
   });
+
+  describe('config validation', () => {
+    it('throws on construction when mode is missing', () => {
+      expect(() => createInviteHandler({ client: makeClient(), config: { bot: {} } }))
+        .toThrow(/invalid config\.bot\.mode/);
+    });
+
+    it('throws on construction when mode is unknown', () => {
+      expect(() => createInviteHandler({ client: makeClient(), config: { bot: { mode: 'broadcast' } } }))
+        .toThrow(/invalid config\.bot\.mode "broadcast"/);
+    });
+  });
 });

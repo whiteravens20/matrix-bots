@@ -2,7 +2,11 @@
 // can be unit-tested without a live Matrix client.
 // Bot-specific behaviour is driven by config.bot.mode.
 export function createInviteHandler({ client, config }) {
-  const mode = config.bot.mode ?? (config.bot.allowedUsers ? 'dm' : config.bot.targetRoomId ? 'room' : 'dm');
+  const { mode } = config.bot;
+
+  if (mode !== 'dm' && mode !== 'room') {
+    throw new Error(`createInviteHandler: invalid config.bot.mode "${mode}" (expected "dm" or "room")`);
+  }
 
   return async (roomId, event) => {
     if (mode === 'dm') {
@@ -23,7 +27,7 @@ export function createInviteHandler({ client, config }) {
           console.error(`Failed to leave room ${roomId}: ${err.message}`);
         }
       }
-    } else if (mode === 'room') {
+    } else {
       if (roomId === config.bot.targetRoomId) {
         console.log(`Ignoring invitation to target room ${roomId} from ${event.sender}`);
         return;

@@ -143,6 +143,15 @@ describe('createMessageHandler', () => {
       await expect(handler(ROOM, textEvent('!help'))).resolves.toBeUndefined();
     });
 
+    it('does not send the fallback after a failed n8n reply delivery', async () => {
+      // First call (the n8n reply) throws; subsequent calls would resolve.
+      // If the handler wrongly fell through, the fallback would be sent on the second call.
+      client.sendMessage.mockRejectedValueOnce(new Error('matrix transient'));
+      const handler = createMessageHandler({ client, config: makeConfig('dm'), axios, botUserId: BOT });
+      await handler(ROOM, textEvent('!code hi'));
+      expect(client.sendMessage).toHaveBeenCalledTimes(1);
+    });
+
     it('handles simultaneous messages independently (no cross-talk)', async () => {
       axios.post.mockImplementation(async (_url, payload) => {
         const delay = payload.chatInput === 'first' ? 30 : 1;
@@ -221,6 +230,20 @@ describe('createMessageHandler', () => {
       client.sendMessage.mockRejectedValue(new Error('matrix down'));
       const handler = createMessageHandler({ client, config: makeConfig('room'), axios, botUserId: BOT });
       await expect(handler(TARGET_ROOM, textEvent('!help'))).resolves.toBeUndefined();
+    });
+  });
+
+  describe('config validation', () => {
+    it('throws on construction when mode is missing', () => {
+      const config = { bot: { responsePrefix: '[Bot]', helpText: 'H' }, n8n: {} };
+      expect(() => createMessageHandler({ client: makeClient(), config, axios: { post: vi.fn() }, botUserId: BOT }))
+        .toThrow(/invalid config\.bot\.mode/);
+    });
+
+    it('throws on construction when mode is unknown', () => {
+      const config = { bot: { mode: 'broadcast', responsePrefix: '[Bot]', helpText: 'H' }, n8n: {} };
+      expect(() => createMessageHandler({ client: makeClient(), config, axios: { post: vi.fn() }, botUserId: BOT }))
+        .toThrow(/invalid config\.bot\.mode "broadcast"/);
     });
   });
 });
