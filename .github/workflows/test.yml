@@ -36,15 +36,35 @@ jobs:
         working-directory: ${{ matrix.bot }}
         run: npm test
 
-      - name: Run shared tests
-        if: matrix.bot == 'dmbot'
-        working-directory: ${{ matrix.bot }}
-        run: npx vitest run ../shared/tests
-
       - name: Syntax check (node --check)
         working-directory: ${{ matrix.bot }}
         run: |
           find . -path ./node_modules -prune -o -name '*.js' -print | xargs -r -n1 node --check
+
+  shared-tests:
+    name: Test (shared, Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22']
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: dmbot/package-lock.json
+
+      - name: Install vitest (via dmbot)
+        working-directory: dmbot
+        run: npm ci --ignore-scripts
+
+      - name: Run shared tests
+        working-directory: dmbot
+        run: npx vitest run --dir ../shared/tests
 
   docker-build:
     name: Validate Docker build (${{ matrix.bot }})
