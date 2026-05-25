@@ -87,7 +87,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          dockerfile: ./${{ matrix.bot }}/Dockerfile
+          file: ./${{ matrix.bot }}/Dockerfile
           push: false
           load: true
           tags: matrix-bots-${{ matrix.bot }}:ci
