@@ -22,6 +22,8 @@ These vulnerabilities exist in transitive dependencies of `matrix-bot-sdk` (^0.8
 
 The `request` SSRF (GHSA-p8p7-x288-28g6) has no upstream fix; the risk-accept decision is recorded in [docs/adr/0001-accept-request-ssrf.md](docs/adr/0001-accept-request-ssrf.md).
 
+The `uuid` bounds-check gap (GHSA-w5hq-g745-h8pq / CVE-2026-41907) is unreachable from our dependency graph because `request` calls `uuid()` only on the unaffected `v4()` path; the risk-accept decision is recorded in [docs/adr/0002-accept-uuid-bounds.md](docs/adr/0002-accept-uuid-bounds.md).
+
 ### Impact Assessment
 
 **Risk Level: LOW** for this application because:
