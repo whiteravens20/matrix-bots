@@ -4,21 +4,25 @@
 
 ### Transitive Dependencies (matrix-bot-sdk)
 
-The matrix-bot-sdk package depends on several deprecated packages that have known vulnerabilities:
+The matrix-bot-sdk package depends on the deprecated `request` chain, which
+carries two unfixable moderate advisories. These are the only vulnerabilities
+`npm audit` reports for either workspace:
 
-- **request** (deprecated) - Used by matrix-bot-sdk
-- **request-promise** (deprecated) - Wrapper around request
-- **form-data** - Contains CVE for unsafe random function (GHSA-fjxv-7rqg-78g4)
-- **qs** - Contains DoS vulnerability via memory exhaustion (GHSA-6rw7-vpxm-498p)
-- **tough-cookie** - Contains prototype pollution vulnerability (GHSA-72xf-g2v4-qvf3)
+- **request** (deprecated) — SSRF, GHSA-p8p7-x288-28g6 (accepted, ADR 0001)
+- **request-promise** / **request-promise-core** (deprecated) — wrappers around `request`, same chain
+- **matrix-bot-sdk** — flagged transitively for depending on the above
+- **uuid** (3.4.0, via `request`) — bounds-check gap, GHSA-w5hq-g745-h8pq / CVE-2026-41907 (accepted, ADR 0002)
 
-**Severity Breakdown:**
-- 2 Critical vulnerabilities
-- 1 High severity
-- 4 Moderate severities
+**Severity Breakdown (current `npm audit`, both workspaces):**
+- 0 Critical / 0 High
+- 5 Moderate — all from the `request` chain + `uuid` above, all risk-accepted
+
+> Previously reported findings in `form-data`, `qs`, and `tough-cookie` have
+> been resolved via the `overrides` block in each workspace's `package.json`
+> (form-data ≥ 4.0.5, qs ≥ 6.15.2, tough-cookie ≥ 4.1.4) and no longer appear.
 
 ### Root Cause
-These vulnerabilities exist in transitive dependencies of `matrix-bot-sdk` (^0.8.0), which is the latest available version. The matrix-bot-sdk maintains these deprecated dependencies for backward compatibility.
+These vulnerabilities exist in transitive dependencies of `matrix-bot-sdk` (^0.8.0), which is the latest available release (npm `latest` = 0.8.0). It still hard-depends on `request@^2.88.2` and `request-promise@^4.2.6`, so no dependency bump resolves them.
 
 The `request` SSRF (GHSA-p8p7-x288-28g6) has no upstream fix; the risk-accept decision is recorded in [docs/adr/0001-accept-request-ssrf.md](docs/adr/0001-accept-request-ssrf.md).
 
@@ -138,6 +142,6 @@ This application:
 
 ## Last Updated
 
-**29 January 2026**
+**7 June 2026**
 
 Next security review recommended: **29 July 2026**
