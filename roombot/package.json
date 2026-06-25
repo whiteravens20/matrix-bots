@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.9"
   },
   "dependencies": {
     "matrix-bot-sdk": "^0.8.0",
