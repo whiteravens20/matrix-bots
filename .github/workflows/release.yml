@@ -29,7 +29,7 @@ jobs:
     outputs:
       on-main: ${{ steps.check.outputs.on-main }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Check branch containment
@@ -61,7 +61,7 @@ jobs:
       dmbot-digest: ${{ steps.build.outputs.digest }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Compute Docker metadata
         id: meta
@@ -129,7 +129,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
