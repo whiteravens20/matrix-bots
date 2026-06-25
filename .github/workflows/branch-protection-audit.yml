@@ -59,7 +59,7 @@ jobs:
           echo "Configured required checks:"
           echo "$REQUIRED_CHECKS" | sed 's/^/  - /'
 
-          for must in "Test (dmbot, Node 22)" "Test (roombot, Node 22)" "Test (shared, Node 22)" "Analyze (javascript)"; do
+          for must in "Test (dmbot, Node 24)" "Test (roombot, Node 24)" "Test (shared, Node 24)" "Analyze (javascript)"; do
             if ! echo "$REQUIRED_CHECKS" | grep -Fxq "$must"; then
               echo "::warning::Required status check missing (recommended): '${must}'"
             fi

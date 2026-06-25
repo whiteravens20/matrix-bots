@@ -43,14 +43,16 @@ A bot configured for group room interactions. It:
 ## Setup
 
 ### Prerequisites
-- **Node.js 22+** (for local development) - Check with `node --version`
+- **Node.js 24+** (for local development) - Check with `node --version`
 - **Docker and Docker Compose** (recommended for deployment)
 - **Matrix bot accounts** with credentials - See [BOT_CREDENTIALS_GUIDE.md](docs/BOT_CREDENTIALS_GUIDE.md) for setup instructions
 
 ### ⚠️ Important: Node Version
-This project requires **Node.js 22 or higher** due to the `@matrix-org/matrix-sdk-crypto-nodejs` dependency.
-- Docker images use Node 22-alpine (compatible) ✅
-- Local development requires Node 22+ ⚠️
+This project requires **Node.js 24 or higher** (current LTS). The
+`@matrix-org/matrix-sdk-crypto-nodejs` native dependency only ships a working
+**glibc** prebuild, so the Docker images use a glibc base — not Alpine/musl.
+- Docker images use Node 24 on a distroless (glibc) base ✅
+- Local development requires Node 24+ ⚠️
 
 ### Installation
 

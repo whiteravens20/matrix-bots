@@ -26,7 +26,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: '24'
 
       # Production deps: fail on high+. The only outstanding moderate is the
       # unfixable `request` SSRF (GHSA-p8p7-x288-28g6) transitively via

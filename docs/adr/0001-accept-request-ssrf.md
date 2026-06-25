@@ -30,8 +30,8 @@ Accept the risk. The exposure is low for this application:
   request to an attacker-controlled URL. The bots issue outbound requests to a
   single operator-configured n8n webhook URL — never to a URL derived from
   Matrix message content.
-- Bots run in Docker (`node:22-alpine`) and talk only to a trusted Matrix
-  homeserver and the operator's n8n instance.
+- Bots run in Docker (distroless Node 24, glibc) and talk only to a trusted
+  Matrix homeserver and the operator's n8n instance.
 
 See [SECURITY.md](../../SECURITY.md) for the full risk assessment.
 

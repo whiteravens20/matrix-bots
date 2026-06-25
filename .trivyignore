@@ -18,6 +18,19 @@
 CVE-2023-28155
 CVE-2026-41907
 
-# Note: the npm CLI is removed from the runtime images (see each Dockerfile),
-# so CVEs in npm's own vendored deps (brace-expansion, undici, …) no longer
-# ship and need no entries here.
+# --- Distroless base: OpenSSL system package lag (unreachable, fixed upstream) ---
+# gcr.io/distroless/nodejs24-debian12 ships a system libssl3 one Debian point
+# release behind security. These are NOT reachable in our runtime: Node bundles
+# its own OpenSSL (3.5.x, statically linked) and the Rust crypto native module
+# links neither, so nothing in the image loads system libssl3. All are fixed
+# upstream (deb12u2) and clear automatically on the next distroless base rebuild.
+# Re-check and remove after 2026-09-30 (or once the base ships the fix).
+CVE-2026-31789
+CVE-2026-28387
+CVE-2026-28388
+CVE-2026-28389
+CVE-2026-28390
+CVE-2026-45447
+
+# Note: runtime images are distroless (no npm, no shell), so CVEs in npm's own
+# vendored deps (brace-expansion, undici, …) never ship and need no entries.

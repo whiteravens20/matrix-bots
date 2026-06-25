@@ -36,11 +36,11 @@ The `uuid` bounds-check gap (GHSA-w5hq-g745-h8pq / CVE-2026-41907) is unreachabl
 2. **Bots Use DMs Only**: Communication is restricted to whitelisted users (chatbot/codebot) or specific rooms (roombot)
 3. **Simple Message Processing**: Messages are echoed/forwarded without complex parsing
 4. **HTTP Requests Only**: Vulnerabilities would require malicious input through HTTP request headers (form-data, qs) which are only used internally for n8n webhook requests
-5. **Controlled Environment**: Docker deployment with Node 22-alpine isolates the application
+5. **Controlled Environment**: Docker deployment on a distroless Node 24 image isolates the application
 
 ### Mitigation Strategies
 
-1. **Use Docker**: Always deploy using Docker Compose with Node 22-alpine image (recommended)
+1. **Use Docker**: Always deploy using Docker Compose with the distroless Node 24 image (recommended)
    - Provides OS-level isolation
    - Pins Node version
    - Reduces attack surface
@@ -55,8 +55,8 @@ The `uuid` bounds-check gap (GHSA-w5hq-g745-h8pq / CVE-2026-41907) is unreachabl
    - Check GitHub advisories regularly
 
 4. **Keep Updated**:
-   - Ensure Node >= 22.0.0 (specified in package.json)
-   - Docker images use Node 22-alpine (latest LTS)
+   - Ensure Node >= 24.0.0 (specified in package.json)
+   - Docker images use Node 24 on a distroless (glibc) base
 
 ### Recommendations
 
@@ -71,7 +71,7 @@ The `uuid` bounds-check gap (GHSA-w5hq-g745-h8pq / CVE-2026-41907) is unreachabl
 
 **For Development:**
 
-1. Use Node 22+ locally (currently you have Node 20)
+1. Use Node 24+ locally
 2. Run `npm audit` after `npm install`
 3. Keep dependencies updated with `npm update`
 
@@ -92,9 +92,9 @@ If these vulnerabilities become a critical concern:
 - Store tokens in secure secret management system (for production)
 
 ### Docker Security
-- Use latest Node 22-alpine image
+- Use the distroless Node 24 image
 - Keep Docker and docker-compose updated
-- Use non-root user (already set in Dockerfile)
+- Run as a non-root user (use the distroless `:nonroot` image variant; ensure the mounted data volume is writable by uid 65532)
 - Use read-only root filesystem if possible
 
 ### Matrix Homeserver

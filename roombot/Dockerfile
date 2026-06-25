@@ -1,30 +1,31 @@
-FROM node:22-alpine
+# ── Builder ───────────────────────────────────────────────────────────────────
+# Debian (glibc) base so npm installs the correct `linux-x64-gnu` prebuild of
+# @matrix-org/matrix-sdk-crypto-nodejs. Its `linux-x64-musl` prebuild is
+# mislabeled (actually glibc-linked) and fails to load on Alpine/musl, which
+# crashes matrix-bot-sdk at import time — hence a glibc base.
+FROM node:24-slim AS builder
 
 WORKDIR /app
 
-# Copy shared code (used by both bots) first so it is cached across builds.
+# Shared code used by both bots, copied first so it caches across builds.
 COPY shared/lib ./shared/lib
 
-# Copy package files
+# Install production dependencies (pulls the gnu crypto prebuild).
 COPY roombot/package.json roombot/package-lock.json* ./roombot/
-
-# Install dependencies
 RUN npm install --production --prefix ./roombot
 
-# Copy application files
+# Application files.
 COPY roombot/index.js ./roombot/index.js
 COPY roombot/config ./roombot/config
-
-# Create data directory
 RUN mkdir -p /app/roombot/data
 
-# The bot runs `node`, never `npm`, at runtime. Drop the npm CLI and its cache
-# so npm's vendored dependencies (undici, etc.) don't surface as unreachable
-# HIGH/CRITICAL findings in image scans.
-RUN rm -rf /usr/local/lib/node_modules/npm \
-           /usr/local/bin/npm /usr/local/bin/npx \
-           /root/.npm
+# ── Runtime ───────────────────────────────────────────────────────────────────
+# Distroless: glibc, Node 24 LTS, no shell or npm — minimal attack/CVE surface.
+# The bot runs `node`, not `npm`, so none of the build toolchain ships.
+FROM gcr.io/distroless/nodejs24-debian12
 
 WORKDIR /app/roombot
+COPY --from=builder /app /app
 
-CMD ["node", "index.js"]
+# The distroless nodejs image's entrypoint is `node`; CMD is the script to run.
+CMD ["index.js"]

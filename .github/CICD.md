@@ -4,7 +4,7 @@
 
 | Workflow | Trigger | Purpose |
 |---|---|---|
-| `test.yml` | Push/PR to `main`, `dev` | `npm ci` and `npm test` in both `dmbot/` and `roombot/` on Node 22 |
+| `test.yml` | Push/PR to `main`, `dev` | `npm ci` and `npm test` in both `dmbot/` and `roombot/` on Node 24 |
 | `security.yml` | Push/PR to `main`, `dev`; weekly | `npm audit` (production: moderate; dev: high), dependency review, `npm audit signatures`, Trivy filesystem scan |
 | `codeql.yml` | Push/PR to `main`, `dev`; weekly | CodeQL static analysis for JavaScript |
 | `release.yml` | Push tag `vX.Y.Z` from `main` | Builds the `dmbot` and `roombot` Docker images, pushes to GHCR, scans with Trivy, generates GitHub Release notes |
