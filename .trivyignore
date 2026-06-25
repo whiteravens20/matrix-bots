@@ -18,12 +18,18 @@
 CVE-2023-28155
 CVE-2026-41907
 
-# --- Vendored inside the npm CLI in the node:22-alpine base image ---
-# brace-expansion 5.0.5 has a ReDoS via `max` bypass (fixed in 5.0.6).
-# The vulnerable copy lives at
-# /usr/local/lib/node_modules/npm/node_modules/brace-expansion, i.e. inside
-# the npm CLI bundle — not in our application deps. npm itself is not exposed
-# to user-controlled input at bot runtime, so this is not exploitable in our
-# containers. npm@latest (11.14.1) still bundles 5.0.5; remove this entry
-# once an npm release ships brace-expansion >= 5.0.6.
-CVE-2026-45149
+# --- Vendored inside the npm CLI bundle (node:22-alpine + npm@latest) ---
+# These CVEs live in dependencies vendored inside the npm CLI itself
+# (/usr/local/lib/node_modules/npm/node_modules/...), not in our application
+# deps. npm runs only at image-build time, never at bot runtime with
+# untrusted input, so these are not reachable in our containers. The
+# Dockerfile already upgrades to npm@latest; drop each entry once an npm
+# release bundles the fixed version.
+#
+# npm@11.17.0 already bundles brace-expansion >= 5.0.6, so the former
+# CVE-2026-45149 (brace-expansion ReDoS) entry has been retired.
+#
+# CVE-2026-12151 — undici 6.26.0: DoS via unbounded memory growth on the
+#   WebSocket client. Fixed in undici 6.27.0; npm@11.17.0 still bundles
+#   6.26.0. Remove once npm ships undici >= 6.27.0.
+CVE-2026-12151
