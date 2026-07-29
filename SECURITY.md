@@ -142,6 +142,6 @@ This application:
 
 ## Last Updated
 
-**7 June 2026**
+**29 July 2026**
 
-Next security review recommended: **29 July 2026**
+Next security review recommended: **29 September 2026**
