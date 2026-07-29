@@ -3,7 +3,9 @@
 # @matrix-org/matrix-sdk-crypto-nodejs. Its `linux-x64-musl` prebuild is
 # mislabeled (actually glibc-linked) and fails to load on Alpine/musl, which
 # crashes matrix-bot-sdk at import time — hence a glibc base.
-FROM node:24-slim AS builder
+# Trixie matches the runtime stage below, so the prebuild is resolved against
+# the same glibc it will run on.
+FROM node:24-trixie-slim AS builder
 
 WORKDIR /app
 
@@ -11,21 +13,34 @@ WORKDIR /app
 COPY shared/lib ./shared/lib
 
 # Install production dependencies (pulls the gnu crypto prebuild).
-COPY roombot/package.json roombot/package-lock.json* ./roombot/
-RUN npm install --production --prefix ./roombot
+# `npm ci`, not `npm install`: the image must be built from package-lock.json
+# exactly. `npm install` is free to resolve newer versions at build time, which
+# would silently bypass the min-release-age quarantine the lockfile encodes.
+COPY roombot/package.json roombot/package-lock.json ./roombot/
+RUN npm ci --omit=dev --prefix ./roombot
 
 # Application files.
 COPY roombot/index.js ./roombot/index.js
 COPY roombot/config ./roombot/config
+
+# Runtime state lives here; create it up front so the bot can write
+# bot-storage.json even when no volume is mounted over it.
 RUN mkdir -p /app/roombot/data
 
 # ── Runtime ───────────────────────────────────────────────────────────────────
 # Distroless: glibc, Node 24 LTS, no shell or npm — minimal attack/CVE surface.
 # The bot runs `node`, not `npm`, so none of the build toolchain ships.
-FROM gcr.io/distroless/nodejs24-debian12
+#
+# debian13 (trixie), not debian12: bookworm ships libssl3 3.0.18-1~deb12u2,
+# which carries one CRITICAL and five HIGH CVEs whose fixes are only published
+# for 3.0.19/3.0.20 — so they had to be suppressed in .trivyignore. Trixie
+# reports 0 HIGH/CRITICAL, so those findings are fixed rather than ignored.
+#
+# `:nonroot` runs as uid 65532 instead of root (SECURITY.md § Docker Security).
+FROM gcr.io/distroless/nodejs24-debian13:nonroot
 
 WORKDIR /app/roombot
-COPY --from=builder /app /app
+COPY --from=builder --chown=65532:65532 /app /app
 
 # The distroless nodejs image's entrypoint is `node`; CMD is the script to run.
 CMD ["index.js"]
