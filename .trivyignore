@@ -18,21 +18,11 @@
 CVE-2023-28155
 CVE-2026-41907
 
-# --- Distroless base: OpenSSL system package lag (unreachable in our runtime) ---
-# gcr.io/distroless/nodejs24-debian12 currently ships libssl3 3.0.18-1~deb12u2.
-# These are NOT reachable in our runtime: Node bundles its own OpenSSL (3.5.5,
-# statically linked) and the Rust crypto native module links neither, so nothing
-# in the image loads system libssl3.
-# Fixed upstream in libssl3 3.0.19-1~deb12u2 (3.0.20-1~deb12u2 for CVE-2026-45447);
-# they clear once the distroless base picks that up. Verified still outstanding
-# against a freshly built image on 2026-07-29.
-# Re-check and remove after 2026-09-30 (or once the base ships the fix).
-CVE-2026-31789
-CVE-2026-28387
-CVE-2026-28388
-CVE-2026-28389
-CVE-2026-28390
-CVE-2026-45447
-
+# The six distroless OpenSSL entries that used to live here (CVE-2026-31789
+# CRITICAL, plus CVE-2026-28387/28388/28389/28390/45447 HIGH) were removed on
+# 2026-07-29 by moving the runtime base from debian12 to debian13. Bookworm
+# ships libssl3 3.0.18-1~deb12u2 with no fixed package for that suite; trixie
+# reports 0 HIGH/CRITICAL. The findings are fixed, not suppressed.
+#
 # Note: runtime images are distroless (no npm, no shell), so CVEs in npm's own
 # vendored deps (brace-expansion, undici, …) never ship and need no entries.
