@@ -96,6 +96,11 @@ jobs:
 
       # Scan the built image now so HIGH/CRITICAL CVEs in OS or bundled tools
       # surface on the PR — not at release time.
+      #
+      # `severity` only gates the exit code. Without `limit-severities-for-sarif`
+      # Trivy writes *every* severity into the SARIF, so the unfixable LOW/MEDIUM
+      # distroless base CVEs flood the Security tab. Keep it in sync with the
+      # `trivy-fs` job in security.yml, which already sets it.
       - name: Trivy image scan (${{ matrix.bot }})
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -103,6 +108,7 @@ jobs:
           image-ref: matrix-bots-${{ matrix.bot }}:ci
           severity: HIGH,CRITICAL
           trivyignores: .trivyignore
+          limit-severities-for-sarif: true
           exit-code: '1'
           format: sarif
           output: trivy-image-${{ matrix.bot }}.sarif
