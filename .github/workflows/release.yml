@@ -170,13 +170,13 @@ jobs:
             ## Docker images
 
             ```
-            docker pull ghcr.io/${{ github.repository }}-dmbot:${{ github.ref_name }}
-            docker pull ghcr.io/${{ github.repository }}-roombot:${{ github.ref_name }}
+            docker pull ghcr.io/${{ github.repository }}-dmbot:${{ steps.version.outputs.version }}
+            docker pull ghcr.io/${{ github.repository }}-roombot:${{ steps.version.outputs.version }}
             ```
 
             | Tag | Description |
             |---|---|
-            | `${{ github.ref_name }}` | This exact release (immutable) |
+            | `:${{ steps.version.outputs.version }}` | This exact release (immutable) |
             | `:main` | Always the latest stable production release |
 
             ## Verifying
