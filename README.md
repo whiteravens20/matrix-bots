@@ -6,6 +6,11 @@
 
 A collection of Matrix bots built with Node.js and the Matrix Bot SDK. This repository contains two specialized bots: a DM bot for private direct messages and a Room bot for group conversations, both with optional n8n workflow integration for AI-powered responses.
 
+> [!WARNING]
+> **Early development — not production ready.** Matrix Bots is under active
+> development. Configuration, the n8n webhook payload and deployment may change
+> without notice. Run it to experiment, not for anything you depend on yet.
+
 ## Features
 
 - **Two Specialized Bots**: DM Bot for private conversations and Room Bot for group interactions
