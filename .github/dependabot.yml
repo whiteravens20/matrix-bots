@@ -1,27 +1,35 @@
 # ── Dependabot configuration ──────────────────────────────────────────────────
-# Keeps GitHub Actions and npm dependencies up to date automatically.
-# Opens PRs weekly against `dev` — CI must pass before merging.
+# Keeps GitHub Actions, the npm dependencies of both bots and the Docker base
+# images up to date automatically. Opens PRs against `dev`, weekly for npm and
+# the base images and monthly for actions — CI must pass before merging.
 #
 # Versioning strategy:
-#   - github-actions: bumps the version tag in `uses:` lines (e.g. @v3 → @v4)
+#   - github-actions: bumps the commit SHA and the version comment in `uses:`
+#     lines; minor and patch bumps come as one PR, a major on its own
 #   - npm: respects semver ranges in package.json; groups minor+patch into one PR
+#     for each bot
+#   - docker: bumps the version and the digest of the builder image in `FROM`
+#     lines, and the digest alone for the distroless runtime image, which has no
+#     version tag; a new major of Node is not proposed
+#
+# Supply-chain quarantine: every ecosystem below sets `cooldown: 7`, so Dependabot
+# will not even propose a version until it has been public for a week. This is the
+# primary enforcement point for the 7-day release-age policy — a version that is
+# too fresh never becomes a PR, so it can never be merged early. `.npmrc`
+# `min-release-age=7` in each bot remains as the client-side backstop for manual
+# installs.
 
 version: 2
 
 updates:
   # ── GitHub Actions ───────────────────────────────────────────────────────────
+  # Dependabot will bump the SHA pins and update the # vX.Y.Z comments
+  # when new releases of used actions are published.
   - package-ecosystem: github-actions
-    # Let a newly published version settle for a week before proposing it. A
-    # release can be yanked or a tag repointed in the hours after it lands, and
-    # none of these bumps is urgent. Dependabot security updates are exempt
-    # from cooldown and still open the moment an advisory lands.
-    cooldown:
-      default-days: 7
     directory: /
     target-branch: dev
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
       time: "08:00"
       timezone: UTC
     labels:
@@ -29,15 +37,20 @@ updates:
       - github-actions
     commit-message:
       prefix: "ci"
-
-  # ── DM bot npm ──────────────────────────────────────────────────────────────
-  - package-ecosystem: npm
-    # Let a newly published version settle for a week before proposing it. A
-    # release can be yanked or a tag repointed in the hours after it lands, and
-    # none of these bumps is urgent. Dependabot security updates are exempt
-    # from cooldown and still open the moment an advisory lands.
+    # Let a newly published version settle for a week before proposing it. A tag
+    # can be repointed or a release yanked in the hours after it lands, and none
+    # of these bumps is urgent. A pinned action gets no Dependabot alert, so the
+    # "Actions audit" job in security.yml watches the advisory database instead.
     cooldown:
       default-days: 7
+    groups:
+      actions-non-breaking:
+        update-types:
+          - minor
+          - patch
+
+  # ── DM bot npm ───────────────────────────────────────────────────────────────
+  - package-ecosystem: npm
     directory: /dmbot
     target-branch: dev
     schedule:
@@ -50,20 +63,22 @@ updates:
       - dmbot
     commit-message:
       prefix: "chore(dmbot)"
+    # Same week-long settling window: a freshly published npm version is the one
+    # most likely to be a compromised or broken release. `cooldown` governs
+    # version updates only — Dependabot security updates are exempt by design and
+    # still open the moment an advisory lands, which is what we want.
+    cooldown:
+      default-days: 7
+    # Group all non-breaking updates into a single PR to reduce noise.
+    # Security updates are always opened as separate PRs regardless.
     groups:
       dmbot-non-breaking:
         update-types:
           - minor
           - patch
 
-  # ── Room bot npm ────────────────────────────────────────────────────────────
+  # ── Room bot npm ─────────────────────────────────────────────────────────────
   - package-ecosystem: npm
-    # Let a newly published version settle for a week before proposing it. A
-    # release can be yanked or a tag repointed in the hours after it lands, and
-    # none of these bumps is urgent. Dependabot security updates are exempt
-    # from cooldown and still open the moment an advisory lands.
-    cooldown:
-      default-days: 7
     directory: /roombot
     target-branch: dev
     schedule:
@@ -76,21 +91,23 @@ updates:
       - roombot
     commit-message:
       prefix: "chore(roombot)"
+    # Same week-long settling window; security updates stay exempt.
+    cooldown:
+      default-days: 7
     groups:
       roombot-non-breaking:
         update-types:
           - minor
           - patch
 
-  # ── Docker (compose images + Dockerfiles) ────────────────────────────────────
+  # ── Docker base images ───────────────────────────────────────────────────────
+  # Both Dockerfiles pin their base images by digest: the builder by version and
+  # digest, the distroless runtime by digest alone. A new minor or patch of Node
+  # moves version and digest together; a rebuild moves the digest alone.
   - package-ecosystem: docker
-    # Let a newly published version settle for a week before proposing it. A
-    # release can be yanked or a tag repointed in the hours after it lands, and
-    # none of these bumps is urgent. Dependabot security updates are exempt
-    # from cooldown and still open the moment an advisory lands.
-    cooldown:
-      default-days: 7
-    directory: /
+    directories:
+      - /dmbot
+      - /roombot
     target-branch: dev
     schedule:
       interval: weekly
@@ -102,3 +119,12 @@ updates:
       - docker
     commit-message:
       prefix: "chore(docker)"
+    # Same week-long settling window, for a new version and for a rebuilt one.
+    cooldown:
+      default-days: 7
+    # A new major of Node is a change to the project, made by hand together with
+    # `node-version` in the workflows and the distroless image's name.
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
