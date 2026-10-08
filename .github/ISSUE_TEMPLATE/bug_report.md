@@ -28,8 +28,8 @@ What actually happens. Include any error messages, stack traces, or unexpected o
 | Field | Value |
 |---|---|
 | Bot affected | dmbot / roombot / both |
-| Bot version (package.json) | e.g. 2.0.0 |
-| Node.js version | e.g. 22.x |
+| Version or commit | e.g. v0.3.3, or the commit on `dev` |
+| Node.js version (when run without Docker) | e.g. 24.x |
 | Operating System | e.g. Ubuntu 24.04 |
 | Deployment method | Docker / direct Node.js |
 | Matrix homeserver | e.g. matrix.org, synapse self-hosted |
