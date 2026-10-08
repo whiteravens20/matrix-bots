@@ -369,6 +369,29 @@ Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before
 
 Do not report security vulnerabilities through public GitHub issues. Use [private vulnerability reporting](https://github.com/whiteravens20/matrix-bots/security/advisories/new) instead. See [SECURITY.md](SECURITY.md) for the full disclosure policy and the running list of known transitive vulnerabilities.
 
+## How the code is written and checked
+
+Matrix Bots is built by one maintainer using AI coding tools. The tools write most of the code, tests and documentation; the maintainer decides what gets built and is responsible for everything that lands here. The project is in early development, and there is no second human reviewer.
+
+**What a change goes through**
+
+- Every push and pull request runs the tests of the shared logic and a wiring test for each bot, then builds both Docker images and scans them with Trivy ([test.yml](.github/workflows/test.yml)).
+- CodeQL, `npm audit`, package signature checks and a Trivy scan of the repository run on every push and pull request, and again every week ([codeql.yml](.github/workflows/codeql.yml), [security.yml](.github/workflows/security.yml)).
+- Commits are signed.
+
+**What the maintainer decided and read**
+
+- Access is closed by default. The DM bot answers only users on an allow list, and only in rooms it has confirmed to be direct chats by counting their members. The room bot answers in the one room it is configured for.
+- Two advisories in the Matrix SDK's dependencies have no fix. The maintainer weighed the options and accepted the risk in writing ([docs/adr](docs/adr)).
+- Changes to `shared/lib/handler.js` and `shared/lib/invite-handler.js`, which decide whom the bots answer and which invitations they accept, are read line by line by the maintainer.
+
+**Before a release**
+
+- A release is a tag on `main`. The tests and scans above run on that commit, and the release workflow builds both images and scans them again.
+- Before a tag is pushed, the maintainer runs both bots against a Matrix homeserver and an n8n workflow.
+
+If something looks wrong, open an issue. For a vulnerability, use [private vulnerability reporting](https://github.com/whiteravens20/matrix-bots/security/advisories/new).
+
 ## License
 
 Released under the [MIT License](LICENSE).
