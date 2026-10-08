@@ -8,22 +8,9 @@ This guide shows how to set up an n8n workflow for Matrix bots with command-base
 
 ## Architecture
 
-```
-Matrix Bot (DM or Room) → n8n Webhook
-              ↓
-       Window Buffer Memory (20 messages per user)
-              ↓
-       Switch Node (route by commandType)
-         ├─ general → General LLM
-         ├─ code → Code Expert LLM (DM Bot)
-         ├─ moderate → Moderation LLM (Room Bot)
-         ├─ clear → Clear Memory
-         └─ default → Unknown command handler
-              ↓
-       Respond to Webhook
-              ↓
-Matrix Bot → User
-```
+A bot posts each message it is allowed to answer to one n8n webhook and waits for the reply. Inside the workflow the message passes through four stages.
+
+The webhook trigger receives the bot's payload. A Window Buffer Memory node, keyed by `sessionId`, loads the last 20 messages of that sender. A Switch node reads `commandType` and sends the message down one branch: `general` to the default model, `code` to a model with a programming prompt (the DM bot), `moderate` to a moderation prompt (the room bot), `clear` to a branch that empties the memory, and anything else to a branch that says the command is unknown. Every branch ends in the same Respond to Webhook node, which returns the text for the bot to post.
 
 ---
 
@@ -387,29 +374,23 @@ Expected: Memory cleared confirmation, then asking name again should not remembe
 
 ## Multiple Bots Setup
 
-To run separate workflows for each bot:
+The DM bot and the room bot can share one workflow or have one each.
 
-1. **Create 3 workflows** (one per bot):
-   - Chatbot Workflow: `/webhook/chatbot`
-   - CodeBot Workflow: `/webhook/codebot`
-   - RoomBot Workflow: `/webhook/roombot`
+1. **One workflow per bot.** Give each its own webhook path, for example `/webhook/dmbot` and `/webhook/roombot`. The payload's `botType` field also tells them apart inside a shared workflow.
 
-2. **Same Memory sessionId**: All use `{{ $json.sessionId }}` (user ID)
-   - User can talk to ChatBot, then switch to CodeBot
-   - CodeBot will see conversation history from ChatBot
-   - Shared context across bots!
+2. **The same memory key.** Both use `{{ $json.sessionId }}`, the sender's Matrix ID. If both workflows read the same memory store, a person who talks to the DM bot and then writes in the room is one conversation; give each workflow its own store to keep them apart.
 
-3. **Different System Prompts**:
-   - ChatBot: "You are a helpful general assistant"
-   - CodeBot: "You are an expert programmer"
-   - RoomBot: "You are a room moderator"
+3. **Different system prompts**, for example "You are a helpful general assistant" for the DM bot and "You are a room moderator" for the room bot.
 
-4. **Configure .env** for each bot:
-   ```bash
-   # In docker-compose.yml
-   CHATBOT: N8N_WEBHOOK_URL=http://n8n:5678/webhook/chatbot
-   CODEBOT: N8N_WEBHOOK_URL=http://n8n:5678/webhook/codebot
-   ROOMBOT: N8N_WEBHOOK_URL=http://n8n:5678/webhook/roombot
+4. **One webhook address per bot.** Both services read `N8N_WEBHOOK_URL`, and the Compose file passes the same value to both. To point them at different workflows, set the variable for each service in `docker-compose.yml`:
+
+   ```yaml
+   dmbot:
+     environment:
+       N8N_WEBHOOK_URL: http://n8n:5678/webhook/dmbot
+   roombot:
+     environment:
+       N8N_WEBHOOK_URL: http://n8n:5678/webhook/roombot
    ```
 
 ---
@@ -481,19 +462,7 @@ return { json: $json };
 6. Clear Memory (Code node)
 7. Respond to Webhook
 
-**Execution Flow:**
-```
-User sends "!code fix my bug"
-  → Bot parses command: {commandType: "code", chatInput: "fix my bug"}
-  → n8n receives webhook
-  → Memory loads last 20 messages
-  → Switch routes to Code LLM
-  → Code LLM generates response with context
-  → Response sent back: {output: "Here's how to fix...", agentType: "code"}
-  → Bot adds prefix: "[Code Expert] Here's how to fix..."
-  → User receives prefixed response
-  → Memory stores user msg + AI response (now 21, oldest dropped)
-```
+**What happens to one message.** A user sends `!code fix my bug`. The bot parses it into `commandType` `code` and `chatInput` `fix my bug` and posts both to the webhook. The memory node loads that user's last 20 messages, the Switch node picks the code branch, and the model answers with the history as context. The workflow returns `{"output": "Here's how to fix...", "agentType": "code"}`, the bot puts `[Code Expert]` in front and posts it to the room, and the memory node stores the question and the answer, dropping the oldest entry once there are more than 20.
 
 ---
 
