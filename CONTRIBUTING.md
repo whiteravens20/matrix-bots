@@ -1,81 +1,81 @@
 # Contributing to Matrix Bots
 
-Thank you for considering a contribution. This repository hosts two small Matrix bots (`dmbot/` and `roombot/`) that route messages through an optional n8n workflow. Please read this guide before opening a pull request.
-
----
+Thank you for considering a contribution. This repository holds two small Matrix bots (`dmbot/` and `roombot/`) that pass messages to an optional n8n workflow. Please read this guide before opening a pull request.
 
 ## Before You Start
 
 - Check the [open issues](../../issues) and [pull requests](../../pulls) to avoid duplicating work.
-- For larger changes (new commands, new auth method, schema changes to the n8n webhook payload), open an issue first to discuss the approach.
+- For a larger change (a new sign-in method, a change to the webhook payload, a new mode), open an issue first to discuss the approach.
 - By contributing, you agree to the project [License](LICENSE) and [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Scope of Contributions
 
 In scope:
 
-- Bug fixes in the bots' message handling.
-- New `!command` handlers and corresponding documentation.
-- Hardening (input validation, whitelist enforcement, webhook timeout / retry behaviour).
-- Docker / docker-compose improvements.
-- Documentation, including the `docs/` guides.
+- Bug fixes in how the bots handle messages and invitations.
+- Hardening: input validation, the allow-list and room checks, how the webhook call fails.
+- Improvements to the Dockerfiles and the Compose file.
+- Documentation, including the guides in `docs/`.
 
-Out of scope (or coordinate first):
+Out of scope, or to be agreed first:
 
-- Switching the SDK away from `matrix-bot-sdk`.
-- Persisting plaintext messages or storing user data beyond the in-memory window.
-- Adding analytics, telemetry, or any phone-home behaviour.
+- Replacing `matrix-bot-sdk`.
+- Storing messages or anything else about users in the bots.
+- Analytics, telemetry or any other call home.
 
 ## Development Setup
 
 ### Requirements
 
-- Node.js 22 or newer (`matrix-bot-sdk` crypto requires it).
-- Docker + Docker Compose (for the full local stack with n8n).
-- A test Matrix homeserver account for each bot, or shared test accounts.
+- Node.js 24 or newer.
+- Docker with Compose, for the full stack with n8n.
+- A test account on a Matrix homeserver for each bot you run.
 
 ### Local start
 
-Each bot is an independent ESM package.
+Each bot is an ES module package of its own.
 
 ```bash
-cd dmbot   # or roombot
+cd dmbot          # or roombot
 npm ci
-cp ../.env.example ../.env   # fill in credentials
+npm rebuild @matrix-org/matrix-sdk-crypto-nodejs --ignore-scripts=false
 npm start
 ```
 
+Install scripts are switched off in each bot's `.npmrc`. The `npm rebuild` line runs the one script the bots need: the Matrix SDK downloads its native library there, and does not load without it.
+
 ### Environment variables
 
-See `.env.example` at the repo root. **Never commit a populated `.env`.** Use unique credentials per bot, even in development.
+A bot started with `npm start` reads `.env` from its own directory, with the names the code uses: `MATRIX_HOMESERVER`, `MATRIX_USERNAME` and `MATRIX_PASSWORD` (or `MATRIX_ACCESS_TOKEN`), `N8N_WEBHOOK_URL`, plus `ALLOWED_USERS` for the DM bot and `TARGET_ROOM_ID` for the room bot. The `.env.example` at the root is for Compose, which maps its `DMBOT_` and `ROOMBOT_` names onto these.
+
+Never commit a filled-in `.env`. Use separate credentials for each bot, in development too.
 
 ## Coding Guidelines
 
 ### General
 
 - ES modules (`"type": "module"`). No CommonJS in new files.
-- Keep individual files small and focused; both bots already split `index.js`, `config/`, and `handlers/`.
-- No dead code. Delete what isn't used.
+- Each bot is an entry point (`index.js`) and a `config/`. Everything the two share belongs in `shared/lib/`, written so that it can be tested without a Matrix client: dependencies are passed in, as in `createMessageHandler`.
+- No dead code. Delete what is not used.
 
 ### Commits
 
 Use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
-feat: add !summarize command to roombot
-fix(dmbot): reject DM rooms with > 2 members
-chore: bump matrix-bot-sdk to 0.9.0
-docs: clarify webhook payload schema
-build: update axios and add dependency overrides
+feat: add a summarize command to the room bot
+fix(dmbot): ignore rooms with more than two members
+docs: describe the webhook payload
 ```
 
-Sign your commits (`git commit -S`). The `main` branch requires signed commits.
+Sign your commits (`git commit -S`). Both branches accept signed commits only.
 
 ### Dependencies
 
-- Pin minor versions in `package.json`; lockfiles must be committed.
-- Run `npm audit --omit=dev` before adding a new runtime dependency. Production audit level is `moderate`; dev is `high`.
-- If `matrix-bot-sdk` pulls in something deprecated, add an entry in `SECURITY.md` rather than silently overriding.
+- Dependencies are installed from the committed lockfiles with `npm ci`. A change to `package.json` comes with its lockfile.
+- A version has to be at least seven days old before it is added: `.npmrc` refuses a newer one.
+- Before adding a runtime dependency, run the audit the way CI does: `node .github/scripts/audit-check.mjs --dir dmbot --omit=dev --audit-level moderate`, and the same for `roombot`.
+- An advisory in a dependency of `matrix-bot-sdk` that has no fix is not silenced by lowering the threshold. The decision goes into `docs/adr/`, and the advisory into `.github/scripts/audit-allowlist.json` with its reason and an expiry date.
 
 ### AI-assisted code
 
@@ -83,31 +83,30 @@ Most of this project is written with AI coding tools, as the [README](README.md#
 
 ## Testing
 
-Shared logic is tested in `shared/tests/`; each bot only has a minimal wiring test in `botname/tests/`.
+The shared logic is tested in `shared/tests/`. Each bot has a small wiring test in its own `tests/`.
 
 ```bash
-cd shared && npm test        # shared logic tests
-cd dmbot && npm test         # bot wiring test
-cd roombot && npm test       # bot wiring test
+cd dmbot && npm ci
+npm test                                  # the bot's wiring test
+npx vitest run --dir ../shared/tests      # the shared logic
 ```
 
-The `test.yml` workflow runs `npm test` for `shared`, `dmbot`, and `roombot` on every push and PR. When adding tests:
+The `test.yml` workflow runs these for both bots on every push and pull request. When you add tests:
 
-- Place shared tests in `shared/tests/` as `*.test.js`.
-- Place bot wiring tests in `dmbot/tests/` or `roombot/tests/` as `*.test.js`.
-- Keep logic testable by injecting dependencies — see `shared/lib/handler.js` (`createMessageHandler`) and `shared/lib/commands.js`, which are pure modules with no Matrix client at import time.
+- Put tests of shared logic in `shared/tests/` as `*.test.js`.
+- Put a bot's own tests in `dmbot/tests/` or `roombot/tests/`.
 
-Automated tests cover command parsing and the message-handling flow. Live behaviour (Matrix login, room joins, the end-to-end n8n round-trip) still needs manual verification against a real homeserver — document what you exercised in the PR description.
+The automated tests cover command parsing and the two handlers. Signing in, joining rooms and the round trip through n8n need a real homeserver: say in the pull request what you exercised.
 
 ## Submitting Changes
 
-1. Fork or create a topic branch from `dev`.
-2. Make your changes following the guidelines above.
-3. Open a draft PR against `dev` with a clear description and (if relevant) screenshots / log excerpts.
-4. Mark the PR ready once CI is green.
+1. Fork the repository and create a branch from `dev`.
+2. Make your change, following this guide.
+3. Open a pull request against `dev` and fill in the template.
+4. CI has to be green before the pull request is merged.
 
-PRs to `main` should come only from `dev` and only via maintainer release branches.
+`main` receives changes only from `dev`.
 
 ## Reporting Security Vulnerabilities
 
-Do not open a public issue. Use [private vulnerability reporting](../../security/advisories/new) on GitHub. See `SECURITY.md` for the disclosure policy and the running list of known transitive vulnerabilities.
+Do not open a public issue. Use [private vulnerability reporting](../../security/advisories/new) on GitHub. [SECURITY.md](SECURITY.md) says what to include and lists what the code guarantees and the risks that were accepted.
