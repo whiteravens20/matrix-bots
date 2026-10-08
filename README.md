@@ -166,7 +166,7 @@ Matrix Bots is built by one maintainer using AI coding tools. The tools write mo
 
 **Before a release**
 
-- Releases are paused while the project is in early development: the release workflow is switched off until 1.0, so a tag publishes nothing. The last tagged version is v0.3.3.
+- Releases are paused while the project is in early development: the release workflow is switched off until 1.0, so a tag publishes nothing. The last tagged version is v0.3.3; `package.json` already carries 1.0.0, the version the first stable release will have.
 - Before a version is tagged, the maintainer runs both bots against a Matrix homeserver and an n8n workflow.
 
 If something looks wrong, open an issue. For a vulnerability, use [private vulnerability reporting](https://github.com/whiteravens20/matrix-bots/security/advisories/new).
