@@ -1,147 +1,71 @@
-# Security Policy
+# Security — Matrix Bots
 
-## Known Vulnerabilities
+## Reporting a vulnerability
 
-### Transitive Dependencies (matrix-bot-sdk)
+Report vulnerabilities privately through GitHub's [private vulnerability reporting](https://github.com/whiteravens20/matrix-bots/security/advisories/new). Please do not open a public issue, discussion or pull request for a security bug.
 
-The matrix-bot-sdk package depends on the deprecated `request` chain, which
-carries two unfixable moderate advisories. These are the only vulnerabilities
-`npm audit` reports for either workspace:
+Include the version or commit you tested, the steps that reproduce the problem and the impact you expect. You will get a first reply within a week. A confirmed issue is fixed on `dev`, and the advisory credits you unless you ask otherwise.
 
-- **request** (deprecated) — SSRF, GHSA-p8p7-x288-28g6 (accepted, ADR 0001)
-- **request-promise** / **request-promise-core** (deprecated) — wrappers around `request`, same chain
-- **matrix-bot-sdk** — flagged transitively for depending on the above
-- **uuid** (3.4.0, via `request`) — bounds-check gap, GHSA-w5hq-g745-h8pq / CVE-2026-41907 (accepted, ADR 0002)
+## Supported versions
 
-**Severity Breakdown (current `npm audit`, both workspaces):**
-- 0 Critical / 0 High
-- 5 Moderate — all from the `request` chain + `uuid` above, all risk-accepted
+Matrix Bots is in early development. Fixes land on the `dev` branch; the tagged versions get no backports.
 
-> Previously reported findings in `form-data`, `qs`, and `tough-cookie` have
-> been resolved via the `overrides` block in each workspace's `package.json`
-> (form-data ≥ 4.0.5, qs ≥ 6.15.2, tough-cookie ≥ 4.1.4) and no longer appear.
+## Security checklist
 
-### Root Cause
-These vulnerabilities exist in transitive dependencies of `matrix-bot-sdk` (^0.8.0), which is the latest available release (npm `latest` = 0.8.0). It still hard-depends on `request@^2.88.2` and `request-promise@^4.2.6`, so no dependency bump resolves them.
+What the code guarantees today, and what it deliberately does not protect against.
 
-The `request` SSRF (GHSA-p8p7-x288-28g6) has no upstream fix; the risk-accept decision is recorded in [docs/adr/0001-accept-request-ssrf.md](docs/adr/0001-accept-request-ssrf.md).
+### Who the bots answer
 
-The `uuid` bounds-check gap (GHSA-w5hq-g745-h8pq / CVE-2026-41907) is unreachable from our dependency graph because `request` calls `uuid()` only on the unaffected `v4()` path; the risk-accept decision is recorded in [docs/adr/0002-accept-uuid-bounds.md](docs/adr/0002-accept-uuid-bounds.md).
+- [x] Only text messages are handled, and a bot never answers its own
+- [x] DM bot: the room must have exactly two joined members, checked against the homeserver's member list for every message
+- [x] DM bot: the sender must be in `ALLOWED_USERS`; an empty list means nobody
+- [x] DM bot: joins a room only when invited by a user on that list and leaves any other room it is invited to
+- [x] Room bot: answers in the room named by `TARGET_ROOM_ID` only and refuses to start without it
+- [x] Room bot: leaves any other room it is invited to
+- [x] These rules live in `shared/lib/handler.js` and `shared/lib/invite-handler.js` and are covered by the tests in `shared/tests/`
 
-### Impact Assessment
+### What leaves a bot
 
-**Risk Level: LOW** for this application because:
+- [x] Besides the homeserver, a bot talks to one address: the webhook in `N8N_WEBHOOK_URL`, set by the operator
+- [x] No address is ever taken from the content of a message
+- [x] A webhook call is given up after 30 seconds
+- [x] A warning at start when the webhook is plain HTTP and not `localhost`
 
-1. **No Direct Network Input**: DMs and room messages are not directly parsed for code execution
-2. **Bots Use DMs Only**: Communication is restricted to whitelisted users (chatbot/codebot) or specific rooms (roombot)
-3. **Simple Message Processing**: Messages are echoed/forwarded without complex parsing
-4. **HTTP Requests Only**: Vulnerabilities would require malicious input through HTTP request headers (form-data, qs) which are only used internally for n8n webhook requests
-5. **Controlled Environment**: Docker deployment on a distroless Node 24 image isolates the application
+### What a bot stores
 
-### Mitigation Strategies
+- [x] No message is written to disk: `data/bot-storage.json` holds the position in the sync stream
+- [x] Credentials come from environment variables only and are not logged
+- [x] The log names the sender and the room of each handled message, never its text
 
-1. **Use Docker**: Always deploy using Docker Compose with the distroless Node 24 image (recommended)
-   - Provides OS-level isolation
-   - Pins Node version
-   - Reduces attack surface
+### Container
 
-2. **Network Isolation**: Run bots on private/secure Matrix homeservers
-   - Restrict to whitelisted users only
-   - Monitor for suspicious messages
+- [x] Distroless runtime image: no shell and no package manager
+- [x] Runs as a non-root user; the Compose file drops all capabilities and sets `no-new-privileges`
+- [x] Base images pinned by digest
+- [x] Health check on the freshness of the sync state, so a stalled bot is reported
 
-3. **Dependency Monitoring**: 
-   - Watch for matrix-bot-sdk updates
-   - Run `npm audit` before each deployment
-   - Check GitHub advisories regularly
+### Supply chain
 
-4. **Keep Updated**:
-   - Ensure Node >= 24.0.0 (specified in package.json)
-   - Docker images use Node 24 on a distroless (glibc) base
+- [x] Images are built from the lockfile with `npm ci`, and the build fails when the Matrix SDK's native library is missing
+- [x] `npm audit` on every push and pull request and once a week: production dependencies from `moderate`, everything from `high`
+- [x] Every exception to that audit is listed in `.github/scripts/audit-allowlist.json` with its reason and an expiry date
+- [x] Registry signatures of all packages verified (`npm audit signatures`)
+- [x] Trivy scans of the repository and of both images, and CodeQL
+- [x] Actions pinned to commit SHAs, checked against their tags and against the advisory database
+- [x] Dependabot proposes a version only after it has been public for seven days
 
-### Recommendations
+### Accepted risks
 
-**For Production Deployment:**
+Two advisories in the dependencies of `matrix-bot-sdk` have no fix that can be installed. Each was weighed and accepted in writing:
 
-1. ✅ Use Docker Compose deployment (not local npm)
-2. ✅ Restrict bot access to specific whitelisted users
-3. ✅ Monitor bot logs for unusual activity
-4. ✅ Set up alerts for Matrix server security events
-5. ✅ Review incoming messages for malicious patterns
-6. ⚠️ Consider monitoring matrix-bot-sdk GitHub for security updates
+- `request`, server-side request forgery (GHSA-p8p7-x288-28g6): [docs/adr/0001-accept-request-ssrf.md](docs/adr/0001-accept-request-ssrf.md)
+- `uuid`, missing bounds check (GHSA-w5hq-g745-h8pq): [docs/adr/0002-accept-uuid-bounds.md](docs/adr/0002-accept-uuid-bounds.md)
 
-**For Development:**
+### What this does not protect against
 
-1. Use Node 24+ locally
-2. Run `npm audit` after `npm install`
-3. Keep dependencies updated with `npm update`
-
-### Alternative Solutions
-
-If these vulnerabilities become a critical concern:
-
-1. **Switch to @matrix-js-sdk** - Official SDK (but higher complexity)
-2. **Use matrix-client-js** - Alternative implementation
-3. **Upgrade when matrix-bot-sdk releases new versions** - Monitor releases
-
-## Security Best Practices
-
-### Environment Variables
-- Never commit `.env` file - use `.env.example` only
-- Rotate access tokens regularly
-- Use different tokens for different bots
-- Store tokens in secure secret management system (for production)
-
-### Docker Security
-- Use the distroless Node 24 image
-- Keep Docker and docker-compose updated
-- Run as a non-root user (use the distroless `:nonroot` image variant; ensure the mounted data volume is writable by uid 65532)
-- Use read-only root filesystem if possible
-
-### Matrix Homeserver
-- Require TLS/HTTPS for all connections
-- Keep homeserver software updated
-- Enable authentication and rate limiting
-- Monitor bot activity logs
-
-### n8n Webhook
-- Use HTTPS URLs only for n8n webhooks
-- Validate webhook source if possible
-- Implement rate limiting on n8n side
-- Monitor webhook logs for failures
-
-## Reporting Security Issues
-
-If you discover a security vulnerability in this project:
-
-1. **Do NOT open a public GitHub issue**
-2. Email security details privately to the maintainer
-3. Include:
-   - Description of vulnerability
-   - Steps to reproduce
-   - Potential impact
-   - Suggested fix (if available)
-
-## Security Version Release
-
-When security updates are released:
-- Patch version (x.x.Y) = Non-critical security fixes
-- Minor version (x.Y.0) = Important security fixes
-- Major version (X.0.0) = Critical security fixes or breaking changes
-
-Always review CHANGELOG.md for security-related updates.
-
-## Compliance
-
-This application:
-- ✅ Does NOT store user data permanently
-- ✅ Does NOT process personal information
-- ✅ Does NOT make external API calls except n8n webhooks (optional)
-- ✅ Does NOT expose credentials in logs
-- ✅ Does NOT accept arbitrary code execution
-- ✅ Isolates messages per room/user
-
-## Last Updated
-
-**29 July 2026**
-
-Next security review recommended: **29 September 2026**
+- **No end-to-end encryption.** The bots cannot read an encrypted room, so the rooms they work in are unencrypted and whoever runs the homeserver can read them.
+- **Who wrote, and when.** The log still names the sender and the room of every handled message. Keep logs on the machine and rotate them; [docs/PRIVATE_DM_BOT_GUIDE.md](docs/PRIVATE_DM_BOT_GUIDE.md) shows how.
+- **Everything sent to the workflow.** n8n sees each message it receives, and so does any model or service the workflow calls.
+- **An open webhook.** The bots send no credential with their request. Keep the webhook on a network only they can reach, or protect it on the n8n side.
+- **Room members.** The room bot has no allow list: every member of the target room can use it.
+- **The `.env` file.** A password or an access token in it is as safe as the file and the machine it is on.
