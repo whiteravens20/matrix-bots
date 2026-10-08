@@ -233,6 +233,37 @@ describe('createMessageHandler', () => {
     });
   });
 
+  // The log names who wrote and where, never what: a container log outlives the
+  // conversation and is read by people the message was not meant for.
+  describe('logging', () => {
+    const SECRET = 'a sentence that must stay out of the log';
+    const logged = () => [...console.log.mock.calls, ...console.error.mock.calls].flat().map(String).join('\n');
+
+    it('names the sender and the room of a DM, not its text', async () => {
+      const handler = createMessageHandler({ client, config: makeConfig('dm'), axios, botUserId: BOT });
+      await handler(ROOM, textEvent(SECRET));
+      expect(logged()).toContain(ALICE);
+      expect(logged()).toContain(ROOM);
+      expect(logged()).not.toContain(SECRET);
+    });
+
+    it('names the sender and the room of a room message, not its text', async () => {
+      const handler = createMessageHandler({ client, config: makeConfig('room'), axios, botUserId: BOT });
+      await handler(TARGET_ROOM, textEvent(SECRET, BOB));
+      expect(logged()).toContain(BOB);
+      expect(logged()).toContain(TARGET_ROOM);
+      expect(logged()).not.toContain(SECRET);
+    });
+
+    it('keeps the text out of the log when the n8n call fails', async () => {
+      axios.post.mockRejectedValue(new Error('connect ECONNREFUSED'));
+      const handler = createMessageHandler({ client, config: makeConfig('dm'), axios, botUserId: BOT });
+      await handler(ROOM, textEvent(SECRET));
+      expect(logged()).toContain('connect ECONNREFUSED');
+      expect(logged()).not.toContain(SECRET);
+    });
+  });
+
   describe('config validation', () => {
     it('throws on construction when mode is missing', () => {
       const config = { bot: { responsePrefix: '[Bot]', helpText: 'H' }, n8n: {} };

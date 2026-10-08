@@ -32,10 +32,10 @@ export function createMessageHandler({ client, config, axios, botUserId }) {
           return;
         }
 
-        console.log(`DM from ${event.sender}: ${event.content.body}`);
+        console.log(`DM from ${event.sender} in room ${roomId}`);
       } else {
         if (roomId !== config.bot.targetRoomId) return;
-        console.log(`Message in room ${roomId} from ${event.sender}: ${event.content.body}`);
+        console.log(`Message in room ${roomId} from ${event.sender}`);
       }
 
       const parsed = parseCommand(event.content.body);
