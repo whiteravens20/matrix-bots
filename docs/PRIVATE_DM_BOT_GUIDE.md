@@ -136,7 +136,7 @@ This resolves inside the Docker network. Do not expose n8n port `5678` to the ho
 
 ### Option B: Remove n8n Entirely & Use Local LLM Inference
 
-If you do not need workflow automation, you can bypass n8n and call a local model directly (Ollama, LM Studio, or similar) from the bot code. This requires a small patch to `dmbot/index.js` — replace the `axios.post(config.n8n.webhookUrl, ...)` block with a call to your local API.
+If you do not need workflow automation, you can bypass n8n and call a local model directly (Ollama, LM Studio, or similar) from the bot code. This requires a small patch to `shared/lib/handler.js`: replace the `axios.post(config.n8n.webhookUrl, ...)` block with a call to your local API and read its answer in the shape that API returns.
 
 **Example local endpoint:**
 
@@ -256,12 +256,11 @@ DMBOT_PASSWORD=<strong_password_from_openssl>
 # Whitelist: only YOU
 DMBOT_ALLOWED_USERS=@you:yourdomain.com
 
-# Internal n8n OR local LLM endpoint
+# Internal n8n
 N8N_WEBHOOK_URL=http://n8n:5678/webhook/private-bot
-# N8N_WEBHOOK_URL=http://host.docker.internal:11434/api/chat  # if using Ollama
 
-# Optional: customize prefixes (no functional impact)
-BOT_RESPONSE_PREFIX="[Private Bot]"
+# Optional: the prefix in front of the bot's answers
+DMBOT_RESPONSE_PREFIX=[Private Bot]
 
 # Not needed for private-only setups
 # TARGET_ROOM_ID=...
