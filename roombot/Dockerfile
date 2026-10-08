@@ -19,7 +19,13 @@ COPY shared/lib ./shared/lib
 # exactly. `npm install` is free to resolve newer versions at build time, which
 # would silently bypass the min-release-age quarantine the lockfile encodes.
 COPY roombot/package.json roombot/package-lock.json ./roombot/
-RUN npm ci --omit=dev --prefix ./roombot
+#
+# The crypto prebuild is downloaded by that package's postinstall script. The
+# import on the last line fails the build when the library is missing, so an
+# npm that skips install scripts cannot leave a broken image for the first
+# start of the container to find.
+RUN npm ci --omit=dev --prefix ./roombot \
+ && cd roombot && node -e "import('matrix-bot-sdk')"
 
 # Application files.
 COPY roombot/index.js ./roombot/index.js
