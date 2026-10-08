@@ -38,7 +38,7 @@ If you prefer to use static access tokens (not recommended due to token invalida
 2. Go to Settings → Help & About
 3. Scroll down to "Access Token"
 4. Click to reveal and copy the token
-5. ⚠️ **Warning**: This token will be invalidated if you log in again
+5. **Warning**: This token will be invalidated if you log in again
 
 ### Method 2: Using curl
 
@@ -114,8 +114,8 @@ DMBOT_PASSWORD=your_password
 ### "User not found" Error
 
 Make sure you're using just the username:
-- ✅ Correct: `DMBOT_USERNAME=dmbot`
-- ❌ Wrong: `DMBOT_USERNAME=@dmbot:example.com`
+- Correct: `DMBOT_USERNAME=dmbot`
+- Wrong: `DMBOT_USERNAME=@dmbot:example.com`
 
 ---
 
@@ -144,15 +144,15 @@ openssl rand -base64 32
 ## Minimum Account Requirements
 
 Your bot accounts need:
-- ✅ Ability to send messages in DMs (DM Bot) or rooms (Room Bot)
-- ✅ Ability to read message history
-- ✅ Ability to join rooms (if accepting invites)
+- Ability to send messages in DMs (DM Bot) or rooms (Room Bot)
+- Ability to read message history
+- Ability to join rooms (if accepting invites)
 
 Your bot accounts DO NOT need:
-- ❌ Admin privileges
-- ❌ Ability to create rooms
-- ❌ Ability to invite users
-- ❌ Elevated permissions
+- Admin privileges
+- Ability to create rooms
+- Ability to invite users
+- Elevated permissions
 
 ---
 
