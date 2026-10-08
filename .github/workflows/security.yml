@@ -9,6 +9,9 @@ on:
     # Weekly on Monday at 09:00 UTC
     - cron: '0 9 * * 1'
 
+permissions:
+  contents: read
+
 jobs:
   audit:
     name: npm audit
@@ -26,21 +29,24 @@ jobs:
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '24'
+          node-version: 24
 
-      # Production deps: fail on high+. The only outstanding moderate is the
-      # unfixable `request` SSRF (GHSA-p8p7-x288-28g6) transitively via
-      # matrix-bot-sdk@0.8.0 — see SECURITY.md. Tighten back to `moderate`
-      # once that's resolved upstream.
-      - name: Audit ${{ matrix.bot }} (production, high)
-        working-directory: ${{ matrix.bot }}
-        run: npm audit --omit=dev --audit-level=high
+      # Production deps get a tighter bar (moderate): these ship in the image.
+      # Dev deps stay at high to keep noise manageable.
+      #
+      # audit-check.mjs wraps `npm audit` so that advisories with no installable
+      # fix and no reachable code path can be allowlisted individually, with a
+      # justification and an expiry, instead of lowering the threshold for every
+      # package. See .github/scripts/audit-allowlist.json.
+      - name: Audit ${{ matrix.bot }} (production, moderate)
+        run: node .github/scripts/audit-check.mjs --dir ${{ matrix.bot }} --omit=dev --audit-level moderate
 
       - name: Audit ${{ matrix.bot }} (dev, high)
-        working-directory: ${{ matrix.bot }}
-        run: npm audit --audit-level=high
+        run: node .github/scripts/audit-check.mjs --dir ${{ matrix.bot }} --audit-level high
 
       # Verify every installed tarball has a valid registry signature.
+      # Catches forged tarballs / tampered registry metadata at install time.
+      # Requires a fresh install since `audit signatures` reads node_modules.
       - name: Install ${{ matrix.bot }} (for signature audit)
         working-directory: ${{ matrix.bot }}
         run: npm ci --ignore-scripts
@@ -52,6 +58,7 @@ jobs:
   dependency-review:
     name: Dependency review
     runs-on: ubuntu-latest
+    # Only runs on pull requests — compares new deps against known vulnerabilities
     if: github.event_name == 'pull_request'
     permissions:
       contents: read
@@ -63,6 +70,10 @@ jobs:
       - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           fail-on-severity: high
+          comment-summary-in-pr: always
+          # An allowlisted advisory of high severity or above goes here as
+          # `allow-ghsas:`, and its justification in
+          # .github/scripts/audit-allowlist.json. Keep the two in sync.
 
   trivy-fs:
     name: Trivy filesystem scan
@@ -84,7 +95,7 @@ jobs:
           output: trivy-fs.sarif
           trivyignores: .trivyignore
           limit-severities-for-sarif: true
-          exit-code: '1'
+          exit-code: '1'  # Fail the build on HIGH/CRITICAL vulnerabilities
 
       - name: Upload Trivy SARIF
         uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
