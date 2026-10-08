@@ -75,7 +75,7 @@ npm rebuild @matrix-org/matrix-sdk-crypto-nodejs --ignore-scripts=false
 npm start
 ```
 
-The second command is needed because install scripts are switched off in `.npmrc`, and the Matrix SDK downloads a native library in one. A bot started this way reads `.env` from its own directory, with the names the code uses, not the prefixed ones Compose maps them from: `MATRIX_HOMESERVER`, `MATRIX_USERNAME` and `MATRIX_PASSWORD` (or `MATRIX_ACCESS_TOKEN`), `N8N_WEBHOOK_URL`, plus `ALLOWED_USERS` for the DM bot and `TARGET_ROOM_ID` for the room bot.
+The second command is needed because install scripts are switched off in `.npmrc`, and the Matrix SDK downloads a native library in one. A bot started this way reads `.env` from its own directory, with the names the code uses, not the prefixed ones Compose maps them from: `MATRIX_HOMESERVER`, `MATRIX_USERNAME` and `MATRIX_PASSWORD` (or `MATRIX_ACCESS_TOKEN`), `N8N_WEBHOOK_URL`, plus `ALLOWED_USERS` for the DM bot and `TARGET_ROOM_ID` for the room bot; the prefixes and the help text are `BOT_RESPONSE_PREFIX`, `BOT_HELP_TEXT` and so on, without the bot's name.
 
 ## Commands
 
@@ -85,9 +85,9 @@ The second command is needed because install scripts are switched off in `.npmrc
 | `!code how do I reverse a string` | Sent to the workflow with `commandType` `code` and `chatInput` `how do I reverse a string` |
 | `hello` | Sent to the workflow with `commandType` `general` |
 
-A command is the first word after `!`, in any letter case. The bots attach no meaning to it: what `!code`, `!translate`, `!moderate` or `!clear` do is decided by the workflow. The default help texts list `!clear`, `!code`, `!translate` and `!analyze` for the DM bot and `!clear`, `!moderate` and `!announce` for the room bot; set `BOT_HELP_TEXT` to describe the commands your workflow really handles.
+A command is the first word after `!`, in any letter case. The bots attach no meaning to it: what `!code`, `!translate`, `!moderate` or `!clear` do is decided by the workflow. The default help texts list `!clear`, `!code`, `!translate` and `!analyze` for the DM bot and `!clear`, `!moderate` and `!announce` for the room bot; set `DMBOT_HELP_TEXT` or `ROOMBOT_HELP_TEXT` to describe the commands your workflow really handles.
 
-The prefix in front of an answer comes from `BOT_RESPONSE_PREFIX`, or from the variable that matches the `agentType` the workflow returned: `BOT_GENERAL_PREFIX`, `BOT_CODE_PREFIX`, `BOT_TRANSLATE_PREFIX` and `BOT_ANALYZE_PREFIX` for the DM bot, `BOT_GENERAL_PREFIX`, `BOT_MODERATE_PREFIX` and `BOT_ANNOUNCE_PREFIX` for the room bot. Both bots read the same variable names, so in one `.env` a value applies to both.
+The prefix in front of an answer is the bot's general one, or the one that matches the `agentType` the workflow returned. In `.env` each bot has its own set: `DMBOT_RESPONSE_PREFIX`, `DMBOT_GENERAL_PREFIX`, `DMBOT_CODE_PREFIX`, `DMBOT_TRANSLATE_PREFIX` and `DMBOT_ANALYZE_PREFIX` for the DM bot, `ROOMBOT_RESPONSE_PREFIX`, `ROOMBOT_GENERAL_PREFIX`, `ROOMBOT_MODERATE_PREFIX` and `ROOMBOT_ANNOUNCE_PREFIX` for the room bot. A line left out keeps its default.
 
 ## n8n integration
 

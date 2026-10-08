@@ -41,6 +41,7 @@ What the code guarantees today, and what it deliberately does not protect agains
 
 - [x] Distroless runtime image: no shell and no package manager
 - [x] Runs as a non-root user; the Compose file drops all capabilities and sets `no-new-privileges`
+- [x] The Compose file passes each bot its own variables only, so a bot's container never holds the other bot's credentials
 - [x] Base images pinned by digest
 - [x] Health check on the freshness of the sync state, so a stalled bot is reported
 

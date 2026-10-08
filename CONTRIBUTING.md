@@ -46,7 +46,7 @@ Install scripts are switched off in each bot's `.npmrc`. The `npm rebuild` line 
 
 ### Environment variables
 
-A bot started with `npm start` reads `.env` from its own directory, with the names the code uses: `MATRIX_HOMESERVER`, `MATRIX_USERNAME` and `MATRIX_PASSWORD` (or `MATRIX_ACCESS_TOKEN`), `N8N_WEBHOOK_URL`, plus `ALLOWED_USERS` for the DM bot and `TARGET_ROOM_ID` for the room bot. The `.env.example` at the root is for Compose, which maps its `DMBOT_` and `ROOMBOT_` names onto these.
+A bot started with `npm start` reads `.env` from its own directory, with the names the code uses: `MATRIX_HOMESERVER`, `MATRIX_USERNAME` and `MATRIX_PASSWORD` (or `MATRIX_ACCESS_TOKEN`), `N8N_WEBHOOK_URL`, plus `ALLOWED_USERS` for the DM bot and `TARGET_ROOM_ID` for the room bot. The prefixes and the help text are read as `BOT_RESPONSE_PREFIX`, `BOT_HELP_TEXT` and so on. The `.env.example` at the root is for Compose, which maps its `DMBOT_` and `ROOMBOT_` names onto these.
 
 Never commit a filled-in `.env`. Use separate credentials for each bot, in development too.
 
