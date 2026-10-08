@@ -89,7 +89,7 @@ jobs:
           # check names GitHub actually reports, not the workflow job ids — a
           # matrix job reports its name with the matrix value appended, so a
           # name no job ever produces can never be satisfied and blocks every
-          # merge. `main` has none configured yet, so these stay warnings.
+          # merge. A missing one is a warning until v1 and an error after it.
           REQUIRED_CHECKS=$(echo "$PROT" | jq -r '.required_status_checks.contexts[]? // empty' | sort)
           if [ -z "$REQUIRED_CHECKS" ]; then
             echo "Configured required checks: (none)"
