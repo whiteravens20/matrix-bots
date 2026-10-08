@@ -10,10 +10,10 @@ The DM Bot is the privacy-oriented choice for two reasons built into the code:
 
 | Feature | dmbot | roombot |
 |---|---|---|
-| DM verification | Checks room has exactly 2 members | None (listens to any room) |
-| User whitelist | `ALLOWED_USERS` rejects everyone else | No whitelist |
-| Room invites | Ignored automatically | Ignored automatically |
-| Scope | Private 1:1 only | Group rooms, public by nature |
+| Where it answers | Only in rooms with exactly 2 members | Only in the room set in `TARGET_ROOM_ID` |
+| User whitelist | `ALLOWED_USERS` rejects everyone else | No whitelist: every member of the room |
+| Room invites | Accepted from whitelisted users, left otherwise | Left, unless it is the target room |
+| Scope | Private 1:1 only | One group room |
 
 **Rule of thumb**: If you only need a private assistant for yourself or a few trusted people, use `dmbot` and do not run `roombot` at all.
 
@@ -189,7 +189,7 @@ The bot stores almost nothing locally, but verify the following:
 |---|---|---|---|
 | Bot storage | `./dmbot/data/bot-storage.json` | Matrix sync tokens, room IDs | Review periodically; can be wiped on restart |
 | n8n data | `./n8n/data` | Workflow executions, credentials | Limit retention in n8n settings |
-| Docker logs | Container stdout/stderr | Message metadata and content | Rotate via `log-opt` or send to `/dev/null` |
+| Docker logs | Container stdout/stderr | Who wrote and in which room, never the text | Rotate via `log-opt` or send to `/dev/null` |
 
 **Add log options to `docker-compose.yml`:**
 
@@ -202,25 +202,25 @@ The bot stores almost nothing locally, but verify the following:
         max-file: "3"
 ```
 
-**Sensitive note**: The bot logs the full message body to stdout in lines like `DM from @user: ...`. If you aggregate logs to a remote system, you are exporting message content. Keep logs local.
+**Note**: The bot's log names the sender and the room of each message it handles, in lines like `DM from @user:example.com in room !abc:example.com`, and never the text. A sender's ID together with a time is still personal data, so keep logs local.
 
 ---
 
 ## 9. End-to-End Encryption (E2EE)
 
-`matrix-bot-sdk` does **not** support E2EE out of the box. The bot sees messages in plain text because they are decrypted by the homeserver before being forwarded to the bot via the client-server API.
+The bots do **not** support end-to-end encryption. They use `matrix-bot-sdk` without its encryption support, so a bot cannot read messages in an encrypted room and stays silent there.
 
 **What this means:**
 
-- Messages are encrypted in transit between your client and homeserver (TLS).
-- Messages are **not** encrypted at the homeserver itself when the bot reads them.
-- Anyone with shell access to the homeserver machine can, in principle, read them.
+- The room you share with the bot has to be unencrypted. Many clients switch encryption on for new direct chats, and it cannot be switched off again, so create the room without it.
+- Messages are protected in transit between your client and the homeserver (TLS).
+- The homeserver stores the messages of that room unencrypted. Anyone with access to its database can read them.
 
 **Mitigations:**
 
-1. Run the homeserver and bot on the same trusted machine.
-2. Do not grant third parties access to the server.
-3. If E2EE is a hard requirement, you would need to switch to a different SDK (e.g., `matrix-js-sdk` with crypto bindings) — this is outside the current scope.
+1. Run the homeserver and the bot on a machine you control.
+2. Do not grant third parties access to that server.
+3. If E2EE is a hard requirement, the bot would have to be set up with the SDK's encryption support and a store for its keys, which this project does not do.
 
 For most self-hosted, single-user threat models, running the server on hardware you control is sufficient.
 
