@@ -1,5 +1,9 @@
 # ── matrix-bots — Release ─────────────────────────────────────────────────────
 #
+# SWITCHED OFF until 1.0 (`gh workflow disable release.yml`): the project is in
+# early development, and a tag must not publish images by accident. Turn it back
+# on with `gh workflow enable release.yml` when the first stable release is cut.
+#
 # Triggered by a semver tag (vX.Y.Z) pushed from the main branch.
 # Tags created on any other branch are silently ignored.
 # Builds the dmbot and roombot Docker images, pushes them to GitHub Container
