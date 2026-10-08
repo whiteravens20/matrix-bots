@@ -5,7 +5,9 @@
 # crashes matrix-bot-sdk at import time — hence a glibc base.
 # Trixie matches the runtime stage below, so the prebuild is resolved against
 # the same glibc it will run on.
-FROM node:24-trixie-slim AS builder
+#
+# Pinned by exact version and digest; Dependabot moves the two together.
+FROM node:24.21.0-trixie-slim@sha256:173f125896c3b47ddf056734c7ea789d04595a6a08769a8f78e0df642781fb66 AS builder
 
 WORKDIR /app
 
@@ -36,8 +38,12 @@ RUN mkdir -p /app/dmbot/data
 # for 3.0.19/3.0.20 — so they had to be suppressed in .trivyignore. Trixie
 # reports 0 HIGH/CRITICAL, so those findings are fixed rather than ignored.
 #
-# `:nonroot` runs as uid 65532 instead of root (SECURITY.md § Docker Security).
-FROM gcr.io/distroless/nodejs24-debian13:nonroot
+# `:nonroot` runs as uid 65532 instead of root.
+#
+# Distroless publishes no version tags, so the digest is the whole pin: this one
+# holds Node 24.21.0, the builder's version. Dependabot proposes a new digest
+# when the tag is rebuilt.
+FROM gcr.io/distroless/nodejs24-debian13:nonroot@sha256:9eeb7f5887d0e239e78264b06f7f11d2e14be534050481803a9e4728fcdd278e
 
 WORKDIR /app/dmbot
 COPY --from=builder --chown=65532:65532 /app /app
