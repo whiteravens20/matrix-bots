@@ -69,9 +69,6 @@ jobs:
   docker-build:
     name: Validate Docker build (${{ matrix.bot }})
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
     strategy:
       fail-fast: false
       matrix:
@@ -83,39 +80,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - name: Build image (load locally)
+      # Build only. The image is scanned in the Security workflow
+      # ("Trivy Docker image scan"), on the same events.
+      - name: Build image (validate only, no push)
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: ./${{ matrix.bot }}/Dockerfile
           push: false
-          load: true
           tags: matrix-bots-${{ matrix.bot }}:ci
           cache-from: type=gha,scope=${{ matrix.bot }}
           cache-to: type=gha,mode=max,scope=${{ matrix.bot }}
-
-      # Scan the built image now so HIGH/CRITICAL CVEs in OS or bundled tools
-      # surface on the PR — not at release time.
-      #
-      # `severity` only gates the exit code. Without `limit-severities-for-sarif`
-      # Trivy writes *every* severity into the SARIF, so the unfixable LOW/MEDIUM
-      # distroless base CVEs flood the Security tab. Keep it in sync with the
-      # `trivy-fs` job in security.yml, which already sets it.
-      - name: Trivy image scan (${{ matrix.bot }})
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: image
-          image-ref: matrix-bots-${{ matrix.bot }}:ci
-          severity: HIGH,CRITICAL
-          trivyignores: .trivyignore
-          limit-severities-for-sarif: true
-          exit-code: '1'
-          format: sarif
-          output: trivy-image-${{ matrix.bot }}.sarif
-
-      - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
-        if: always()
-        with:
-          sarif_file: trivy-image-${{ matrix.bot }}.sarif
-          category: trivy-image-${{ matrix.bot }}

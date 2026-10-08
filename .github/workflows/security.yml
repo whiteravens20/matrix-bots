@@ -104,6 +104,46 @@ jobs:
           sarif_file: trivy-fs.sarif
           category: trivy-fs
 
+  trivy-docker:
+    name: Trivy Docker image scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        bot: [dmbot, roombot]
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build ${{ matrix.bot }} image
+        run: docker build -f ./${{ matrix.bot }}/Dockerfile -t matrix-bots-${{ matrix.bot }}:ci .
+
+      # `severity` only gates the exit code. Without `limit-severities-for-sarif`
+      # Trivy writes every severity into the SARIF, and the LOW and MEDIUM
+      # findings of the distroless base, which have no fix, flood the Security tab.
+      - name: Run Trivy on ${{ matrix.bot }} image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: matrix-bots-${{ matrix.bot }}:ci
+          severity: HIGH,CRITICAL
+          format: sarif
+          output: trivy-docker-${{ matrix.bot }}.sarif
+          trivyignores: .trivyignore
+          limit-severities-for-sarif: true
+          exit-code: '1'  # Fail the build on HIGH/CRITICAL vulnerabilities
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        if: always()
+        with:
+          sarif_file: trivy-docker-${{ matrix.bot }}.sarif
+          category: trivy-docker-${{ matrix.bot }}
+
   # Every action in these workflows is pinned to a commit SHA, with its version
   # in a comment. This checks that each SHA is the commit of the version named
   # beside it, so a wrong SHA and a tag moved upstream both fail here.
