@@ -40,16 +40,24 @@ services:
     depends_on:
       n8n:
         condition: service_healthy
-    env_file:
-      - ./.env
+    # Only this bot's variables are passed in, under the names its code reads.
+    # There is no `env_file`: it would hand each container the whole .env,
+    # the other bot's password included.
     environment:
       MATRIX_HOMESERVER: ${MATRIX_HOMESERVER}
       # Use either username/password OR access token
-      MATRIX_USERNAME: ${DMBOT_USERNAME}
-      MATRIX_PASSWORD: ${DMBOT_PASSWORD}
-      MATRIX_ACCESS_TOKEN: ${DMBOT_ACCESS_TOKEN}
-      ALLOWED_USERS: ${DMBOT_ALLOWED_USERS}
-      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+      MATRIX_USERNAME: ${DMBOT_USERNAME:-}
+      MATRIX_PASSWORD: ${DMBOT_PASSWORD:-}
+      MATRIX_ACCESS_TOKEN: ${DMBOT_ACCESS_TOKEN:-}
+      ALLOWED_USERS: ${DMBOT_ALLOWED_USERS:-}
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-}
+      # Optional. An empty value means the default in dmbot/config/config.js.
+      BOT_RESPONSE_PREFIX: ${DMBOT_RESPONSE_PREFIX:-}
+      BOT_GENERAL_PREFIX: ${DMBOT_GENERAL_PREFIX:-}
+      BOT_CODE_PREFIX: ${DMBOT_CODE_PREFIX:-}
+      BOT_TRANSLATE_PREFIX: ${DMBOT_TRANSLATE_PREFIX:-}
+      BOT_ANALYZE_PREFIX: ${DMBOT_ANALYZE_PREFIX:-}
+      BOT_HELP_TEXT: ${DMBOT_HELP_TEXT:-}
     volumes:
       - ./dmbot/data:/app/dmbot/data
       - ./dmbot/config:/app/dmbot/config:ro
@@ -83,16 +91,21 @@ services:
     depends_on:
       n8n:
         condition: service_healthy
-    env_file:
-      - ./.env
+    # Only this bot's variables, as for dmbot.
     environment:
       MATRIX_HOMESERVER: ${MATRIX_HOMESERVER}
       # Use either username/password OR access token
-      MATRIX_USERNAME: ${ROOMBOT_USERNAME}
-      MATRIX_PASSWORD: ${ROOMBOT_PASSWORD}
-      MATRIX_ACCESS_TOKEN: ${ROOMBOT_ACCESS_TOKEN}
-      TARGET_ROOM_ID: ${TARGET_ROOM_ID}
-      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+      MATRIX_USERNAME: ${ROOMBOT_USERNAME:-}
+      MATRIX_PASSWORD: ${ROOMBOT_PASSWORD:-}
+      MATRIX_ACCESS_TOKEN: ${ROOMBOT_ACCESS_TOKEN:-}
+      TARGET_ROOM_ID: ${TARGET_ROOM_ID:-}
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-}
+      # Optional. An empty value means the default in roombot/config/config.js.
+      BOT_RESPONSE_PREFIX: ${ROOMBOT_RESPONSE_PREFIX:-}
+      BOT_GENERAL_PREFIX: ${ROOMBOT_GENERAL_PREFIX:-}
+      BOT_MODERATE_PREFIX: ${ROOMBOT_MODERATE_PREFIX:-}
+      BOT_ANNOUNCE_PREFIX: ${ROOMBOT_ANNOUNCE_PREFIX:-}
+      BOT_HELP_TEXT: ${ROOMBOT_HELP_TEXT:-}
     volumes:
       - ./roombot/data:/app/roombot/data
       - ./roombot/config:/app/roombot/config:ro
