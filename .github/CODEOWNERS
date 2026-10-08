@@ -1,26 +1,37 @@
-# ── Code Owners ───────────────────────────────────────────────────────────────
-# GitHub enforces that at least one owner approves any PR touching these paths.
-# Configure branch protection (Settings → Branches → main → Require review from
-# Code Owners) to make this mandatory.
+# ── Code Owners ──────────────────────────────────────────────────────────────
+# Auto-requests review from the listed owner on any PR touching these paths, and
+# documents where the blast radius is largest.
+#
+# Do NOT turn on "Require review from Code Owners" in branch protection on a
+# solo repo. Nobody can approve their own PR, so that setting combined with
+# enforce_admins makes every PR permanently unmergeable. The merge gate here is
+# CI (required status checks).
 #
 # Paths are checked most-specific to least-specific; last matching rule wins.
 
-# Default: every file requires owner review
-* @pavlojs
-
 # ── CI/CD & supply chain ──────────────────────────────────────────────────────
-# Workflow files and Dependabot config are high-risk supply-chain surfaces.
+# Any change to workflow files or Dependabot config is high-risk supply-chain.
 /.github/ @pavlojs
 
-# ── Bots ──────────────────────────────────────────────────────────────────────
-/dmbot/   @pavlojs
-/roombot/ @pavlojs
+# ── Who the bots answer ───────────────────────────────────────────────────────
+# The handlers decide which rooms and senders get an answer and which
+# invitations are accepted. A mistake here opens a bot to people it must ignore.
+/shared/lib/ @pavlojs
+
+# ── Sign-in and configuration ─────────────────────────────────────────────────
+# Each bot's entry point signs in to the homeserver, and its config reads the
+# allow list, the target room and the webhook address from the environment.
+/dmbot/index.js    @pavlojs
+/dmbot/config/     @pavlojs
+/roombot/index.js  @pavlojs
+/roombot/config/   @pavlojs
 
 # ── Container & orchestration ─────────────────────────────────────────────────
-/docker-compose.yml @pavlojs
+# The images' user, base and install step, and the capabilities Compose drops.
 /dmbot/Dockerfile   @pavlojs
 /roombot/Dockerfile @pavlojs
+/docker-compose.yml @pavlojs
 
 # ── Security & legal docs ─────────────────────────────────────────────────────
 /SECURITY.md @pavlojs
-/LICENSE     @pavlojs
+/LICENSE @pavlojs
